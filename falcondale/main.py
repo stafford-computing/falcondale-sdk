@@ -5,12 +5,12 @@ from typing import Optional
 import requests
 
 
-class Falcodale:
+class Falcondale:
 
     def __init__(self,
                  api_key: Optional[str] = None,
                  api_secret_key: Optional[str] = None,
-                 api_server_url: str = "https://api.falcodale.io"):
+                 api_server_url: str = "https://api.falcomdale.io"):
 
         self._api_server_url = api_server_url
         self._trained_file = None
@@ -81,6 +81,19 @@ class Falcodale:
 
 
         url = f"{self._api_server_url}/predict"
+        url += f"?model_name={model_name}"
+
+        r = requests.post(
+            url=url, files={'csv_data': (csv_data_filename, csv_data)})
+
+        return r
+    
+    def feature_selection(self,
+                model_name: str,
+                csv_data_filename: str,
+                csv_data: BufferedReader):
+
+        url = f"{self._api_server_url}/feature-selection"
         url += f"?model_name={model_name}"
 
         r = requests.post(
