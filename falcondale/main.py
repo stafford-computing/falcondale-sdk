@@ -14,21 +14,37 @@ class Falcondale:
         self._api_server_url = api_server_url
         self._trained_file = None
 
+    def upload_dataset(self, local_file: str):
+
+        url = f"{self._api_server_url}/upload"
+
+        f = open(local_file, 'rb')
+        files = {"file": (local_file, f, "multipart/form-data")}
+
+        r = requests.post(url=url, files=files)
+
+        if r.status_code == 200:
+            self._response= r.json()
+
+            return True
+        else:
+            print("Something went wrong.")
+
+            return False
+
     def train(self,
               model_type: str,
-              model_backend: str,
-              feature_selection_type: str,
-              feature_selection_backend: str,
               target_variable: str,
-              csv_data_filename: str,
-              csv_data: BufferedReader) -> bool:
+              csv_data_filename = str,
+              model_backend: str = "qiskit",
+              feature_selection_type: str = "",
+              feature_selection_backend: str = "") -> bool:
 
         self._model_type = model_type
         self._model_backend = model_backend
         self._feature_selection_type = feature_selection_type
         self._feature_selection_backend = feature_selection_backend
         self._target_variable = target_variable
-        self._csv_data = csv_data
         self._csv_data_filename = csv_data_filename
 
         url = f"{self._api_server_url}/train"
@@ -42,8 +58,7 @@ class Falcondale:
             "filename" : self._csv_data_filename
         }
 
-        r = requests.post(
-            url=url, json=data) #, files={'csv_data': (csv_data_filename, self._csv_data)})
+        r = requests.post(url=url, json=data)
 
         if r.status_code == 200:
             self._response= r.json()
@@ -72,10 +87,9 @@ class Falcondale:
 
     #     return r
 
-    def predict(self,
+    def predict_batch(self,
                 model_name: str,
-                csv_data_filename: str,
-                csv_data: BufferedReader):
+                csv_data_filename: str):
 
         if self._trained_file is None:
             print("Please train/load the model first")
@@ -89,8 +103,7 @@ class Falcondale:
             "model_name" : model_name
         }
 
-        r = requests.post(
-            url=url, json=data) #, files={'csv_data': (csv_data_filename, self._csv_data)})
+        r = requests.post(url=url, json=data)
 
         if r.status_code == 200:
             self._response = r.json()
@@ -101,12 +114,15 @@ class Falcondale:
 
             return False
     
+    def get_current_workflow_id(self):
+
+        return self._response
+
     def feature_selection(self,
                 selection_type: str,
                 target: str,
-                token: str,
                 csv_data_filename: str,
-                csv_data: BufferedReader):
+                token: str = ""):
 
         url = f"{self._api_server_url}/feature-selection"
 
@@ -117,8 +133,7 @@ class Falcondale:
             "target" : target
         }
 
-        r = requests.post(
-            url=url, json=data) #, files={'csv_data': (csv_data_filename, self._csv_data)})
+        r = requests.post(url=url, json=data)
 
         if r.status_code == 200:
             self._response= r.json()
@@ -153,6 +168,8 @@ class Falcondale:
             if "predict" in self._response:
                 json_resp = r.json()
                 return json_resp["labels"]
+            elif "selection" in self._response:
+                return r.json()
             else:
                 report, model_file = r.json()
                 self._trained_file = model_file
@@ -161,7 +178,3 @@ class Falcondale:
         else:
             print("Something went wrong.")
             return ""
-
-    def load(self,
-             model_uuid: str):
-        raise NotImplementedError()
