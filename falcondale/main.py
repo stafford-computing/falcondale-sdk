@@ -4,7 +4,6 @@ from typing import Optional
 
 import requests
 
-
 class Falcondale:
 
     def __init__(self,
@@ -30,21 +29,24 @@ class Falcondale:
         self._feature_selection_backend = feature_selection_backend
         self._target_variable = target_variable
         self._csv_data = csv_data
+        self._csv_data_filename = csv_data_filename
 
         url = f"{self._api_server_url}/train"
-        url += f"?model_backend={self._model_backend}"
-        url += f"&model_type={self._model_type}"
-        url += f"&feature_selection_type={self._feature_selection_type}"
-        url += f"&feature_selection_backend={self._feature_selection_backend}"
-        url += f"&target_variable={self._target_variable}"
+
+        data = {
+            "model_backend" : self._model_backend,
+            "model_type" : self._model_type,
+            "feature_selection_type" : self._feature_selection_type,
+            "feature_selection_backend" : self._feature_selection_backend,
+            "target" : self._target_variable,
+            "filename" : self._csv_data_filename
+        }
 
         r = requests.post(
-            url=url, files={'csv_data': (csv_data_filename, self._csv_data)})
+            url=url, json=data) #, files={'csv_data': (csv_data_filename, self._csv_data)})
 
         if r.status_code == 200:
-            self._score = r.json()[0]
-            self._trained_file = r.json()[1]
-            self._model_uuid = self._trained_file.split("_")[-1]
+            self._response= r.json()
 
             return True
         else:
@@ -81,25 +83,84 @@ class Falcondale:
 
 
         url = f"{self._api_server_url}/predict"
-        url += f"?model_name={model_name}"
+        
+        data = {
+            "filename" : csv_data_filename,
+            "model_name" : model_name
+        }
 
         r = requests.post(
-            url=url, files={'csv_data': (csv_data_filename, csv_data)})
+            url=url, json=data) #, files={'csv_data': (csv_data_filename, self._csv_data)})
 
-        return r
+        if r.status_code == 200:
+            self._response = r.json()
+
+            return True
+        else:
+            print("Something went wrong.")
+
+            return False
     
     def feature_selection(self,
-                model_name: str,
+                selection_type: str,
+                target: str,
+                token: str,
                 csv_data_filename: str,
                 csv_data: BufferedReader):
 
         url = f"{self._api_server_url}/feature-selection"
-        url += f"?model_name={model_name}"
+
+        data = {
+            "filename" : csv_data_filename,
+            "feature_selection_type" : selection_type,
+            "token" : token,
+            "target" : target
+        }
 
         r = requests.post(
-            url=url, files={'csv_data': (csv_data_filename, csv_data)})
+            url=url, json=data) #, files={'csv_data': (csv_data_filename, self._csv_data)})
 
-        return r
+        if r.status_code == 200:
+            self._response= r.json()
+
+            return True
+        else:
+            print("Something went wrong.")
+
+            return False
+
+    def status(self):
+
+        url = f"{self._api_server_url}/check-status"
+        url += f"/{self._response}"
+
+        r = requests.get(url=url)
+
+        if r.status_code == 200:
+            return r.json()
+        else:
+            print("Something went wrong.")
+            return {}
+
+    def collect(self) -> str:
+
+        url = f"{self._api_server_url}/collect"
+        url += f"/{self._response}"
+
+        r = requests.get(url=url)
+
+        if r.status_code == 200:
+            if "predict" in self._response:
+                json_resp = r.json()
+                return json_resp["labels"]
+            else:
+                report, model_file = r.json()
+                self._trained_file = model_file
+
+                return report
+        else:
+            print("Something went wrong.")
+            return ""
 
     def load(self,
              model_uuid: str):
