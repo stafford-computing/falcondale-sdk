@@ -1,5 +1,6 @@
 import json
 from io import BufferedReader, BytesIO
+import time
 from typing import Optional
 
 import requests
@@ -13,13 +14,22 @@ class Falcondale:
 
         self._api_server_url = api_server_url
         self._trained_file = None
+        self._user_id = None
 
-    def upload_dataset(self, local_file: str):
+    def set_user(self, user_id):
+        self._user_id = user_id
 
-        url = f"{self._api_server_url}/upload"
+    def upload_dataset(self, local_file: str, is_training: bool):
+
+        if (self._user_id is None):
+            print("User not defined. Call 'set_user' first, with your ID")
+
+            return False
+
+        url = f"{self._api_server_url}/upload/{'training' if is_training else 'predict'}/{self._user_id}"
 
         f = open(local_file, 'rb')
-        files = {"file": (local_file, f, "multipart/form-data")}
+        files = {"file": (f"{local_file}", f, "multipart/form-data")}
 
         r = requests.post(url=url, files=files)
 
@@ -38,7 +48,8 @@ class Falcondale:
               csv_data_filename = str,
               model_backend: str = "qiskit",
               feature_selection_type: str = "",
-              feature_selection_backend: str = "") -> bool:
+              feature_selection_backend: str = "",
+              is_async: bool = False) -> str:
 
         self._model_type = model_type
         self._model_backend = model_backend
@@ -47,7 +58,12 @@ class Falcondale:
         self._target_variable = target_variable
         self._csv_data_filename = csv_data_filename
 
-        url = f"{self._api_server_url}/train"
+        if (self._user_id is None):
+            print("User not defined. Call 'set_user' first, with your ID")
+
+            return ""
+
+        url = f"{self._api_server_url}/train/{self._user_id}"
 
         data = {
             "model_backend" : self._model_backend,
@@ -61,13 +77,21 @@ class Falcondale:
         r = requests.post(url=url, json=data)
 
         if r.status_code == 200:
-            self._response= r.json()
+            training_id = r.json()
 
-            return True
+            if (not is_async):
+                while (True):
+                    if (self.status(training_id) != 'COMPLETED'):
+                        # print ("not ready, waiting 5 seconds")
+                        time.sleep(5)
+                    else:
+                        return self.get_training_result(training_id)
+
+            return training_id
         else:
             print("Something went wrong.")
 
-            return False
+            return ""
 
     # def predict(self,
     #             **kwargs):
@@ -87,16 +111,18 @@ class Falcondale:
 
     #     return r
 
-    def predict_batch(self,
+    def predict(self,
                 model_name: str,
-                csv_data_filename: str):
+                csv_data_filename: str,
+                is_async: bool = False):
+        
+        if (self._user_id is None):
+            print("User not defined. Call 'set_user' first, with your ID")
 
-        if self._trained_file is None:
-            print("Please train/load the model first")
-            return
+            return ""
 
 
-        url = f"{self._api_server_url}/predict"
+        url = f"{self._api_server_url}/predict/{self._user_id}"
         
         data = {
             "filename" : csv_data_filename,
@@ -106,13 +132,21 @@ class Falcondale:
         r = requests.post(url=url, json=data)
 
         if r.status_code == 200:
-            self._response = r.json()
+            prediction_id = r.json()
 
-            return True
+            if (not is_async):
+                while (True):
+                    if (self.status(prediction_id) != 'COMPLETED'):
+                        # print ("not ready, waiting 5 seconds")
+                        time.sleep(5)
+                    else:
+                        return self.get_training_result(prediction_id)
+
+            return prediction_id
         else:
             print("Something went wrong.")
 
-            return False
+            return ""
     
     def get_current_workflow_id(self):
 
@@ -144,10 +178,10 @@ class Falcondale:
 
             return False
 
-    def status(self):
+    def status(self, training_id):
 
         url = f"{self._api_server_url}/check-status"
-        url += f"/{self._response}"
+        url += f"/{training_id}"
 
         r = requests.get(url=url)
 
@@ -157,24 +191,17 @@ class Falcondale:
             print("Something went wrong.")
             return {}
 
-    def collect(self) -> str:
+    def get_training_result(self, training_id) -> str:
 
-        url = f"{self._api_server_url}/collect"
-        url += f"/{self._response}"
+        url = f"{self._api_server_url}/result"
+        url += f"/{training_id}"
 
         r = requests.get(url=url)
 
         if r.status_code == 200:
-            if "predict" in self._response:
-                json_resp = r.json()
-                return json_resp["labels"]
-            elif "selection" in self._response:
-                return r.json()
-            else:
-                report, model_file = r.json()
-                self._trained_file = model_file
+            self._response = r.json()
+            return self._response
 
-                return report
         else:
             print("Something went wrong.")
             return ""
