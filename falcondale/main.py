@@ -1,6 +1,6 @@
+import time
 import json
 from io import BufferedReader, BytesIO
-import time
 from typing import Optional
 
 import requests
@@ -14,12 +14,19 @@ class Falcondale:
 
         self._api_server_url = api_server_url
         self._trained_file = None
-        self._user_id = None
 
-    def set_user(self, user_id):
+        #TODO: Taken from API secret auth
+        self._user_id = "test_user"
+
+    @property
+    def user_id(self):
+        return self._user_id
+
+    @user_id.setter
+    def user_id(self, user_id):
         self._user_id = user_id
 
-    def upload_dataset(self, local_file: str, is_training: bool):
+    def upload_dataset(self, local_file: str, is_training:bool = True):
 
         if (self._user_id is None):
             print("User not defined. Call 'set_user' first, with your ID")
