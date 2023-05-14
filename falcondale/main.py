@@ -56,6 +56,7 @@ class Falcondale:
               model_backend: str = "qiskit",
               feature_selection_type: str = "",
               feature_selection_backend: str = "",
+              validation_size: float = 0.4,
               is_async: bool = False) -> str:
 
         self._model_type = model_type
@@ -64,6 +65,7 @@ class Falcondale:
         self._feature_selection_backend = feature_selection_backend
         self._target_variable = target_variable
         self._csv_data_filename = csv_data_filename
+        self._validation_size = validation_size
 
         if (self._user_id is None):
             print("User not defined. Call 'set_user' first, with your ID")
@@ -78,7 +80,8 @@ class Falcondale:
             "feature_selection_type" : self._feature_selection_type,
             "feature_selection_backend" : self._feature_selection_backend,
             "target" : self._target_variable,
-            "filename" : self._csv_data_filename
+            "filename" : self._csv_data_filename,
+            "validation_size": self._validation_size
         }
 
         r = requests.post(url=url, json=data)
