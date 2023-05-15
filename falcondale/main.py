@@ -1,5 +1,6 @@
 import time
 import json
+import pandas as pd
 from io import BufferedReader, BytesIO
 from typing import Optional
 
@@ -32,6 +33,10 @@ class Falcondale:
             print("User not defined. Call 'set_user' first, with your ID")
 
             return False
+        
+        if (not self._check_limits(local_file)):
+            print("Dataset is too big. Should be under 500 observations and 300 features")
+            return False
 
         url = f"{self._api_server_url}/upload/{'training' if is_training else 'predict'}/{self._user_id}"
 
@@ -42,12 +47,22 @@ class Falcondale:
 
         if r.status_code == 200:
             self._response= r.json()
+            print(r.json())
 
             return True
         else:
             print("Something went wrong.")
 
             return False
+        
+    def _check_limits(self, local_file: str):
+
+        df = pd.read_csv(local_file)
+
+        if len(df) > 500 | len(df.columns) > 300:
+            return False 
+
+        return True
 
     def train(self,
               model_type: str,
