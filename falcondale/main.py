@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from io import BufferedReader, BytesIO
 from typing import Optional
+from pathlib import Path
 
 import requests
 
@@ -41,7 +42,9 @@ class Falcondale:
         url = f"{self._api_server_url}/upload/{'training' if is_training else 'predict'}/{self._user_id}"
 
         f = open(local_file, 'rb')
-        files = {"file": (f"{local_file}", f, "multipart/form-data")}
+
+        file_name = Path(local_file).name
+        files = {"file": (f"{file_name}", f, "multipart/form-data")}
 
         r = requests.post(url=url, files=files)
 
