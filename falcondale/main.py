@@ -92,6 +92,11 @@ class Falcondale:
 
             return ""
 
+        if model_type == "QNN" and qnn_layers > 10:
+            print(f"{qnn_layers} layers could be too much. Pick a number below 10.")
+
+            return ""
+
         url = f"{self._api_server_url}/train/{self._user_id}"
 
         data = {
