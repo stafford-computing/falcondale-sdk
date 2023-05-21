@@ -72,21 +72,28 @@ class Falcondale:
               target_variable: str,
               csv_data_filename = str,
               model_backend: str = "qiskit",
+              qnn_layers: int = 3,
               feature_selection_type: str = "",
-              feature_selection_backend: str = "",
+              feature_selection_token: str = "",
               validation_size: float = 0.4,
               is_async: bool = False) -> str:
 
         self._model_type = model_type
         self._model_backend = model_backend
         self._feature_selection_type = feature_selection_type
-        self._feature_selection_backend = feature_selection_backend
+        self._feature_selection_token = feature_selection_token
         self._target_variable = target_variable
         self._csv_data_filename = csv_data_filename
         self._validation_size = validation_size
+        self._qnn_layers = qnn_layers
 
         if (self._user_id is None):
             print("User not defined. Call 'set_user' first, with your ID")
+
+            return ""
+
+        if model_type == "QNN" and qnn_layers > 10:
+            print(f"{qnn_layers} layers could be too much. Pick a number below 10.")
 
             return ""
 
@@ -96,10 +103,11 @@ class Falcondale:
             "model_backend" : self._model_backend,
             "model_type" : self._model_type,
             "feature_selection_type" : self._feature_selection_type,
-            "feature_selection_backend" : self._feature_selection_backend,
+            "feature_selection_token" : self._feature_selection_token,
             "target" : self._target_variable,
             "filename" : self._csv_data_filename,
-            "validation_size": self._validation_size
+            "validation_size": self._validation_size,
+            "qnn_layers" : self._qnn_layers
         }
 
         r = requests.post(url=url, json=data)
@@ -186,7 +194,7 @@ class Falcondale:
                 csv_data_filename: str,
                 token: str = ""):
 
-        url = f"{self._api_server_url}/feature-selection"
+        url = f"{self._api_server_url}/feature-selection/{self.user_id}"
 
         data = {
             "filename" : csv_data_filename,
@@ -206,10 +214,13 @@ class Falcondale:
 
             return False
 
-    def status(self, training_id):
+    def status(self, training_id: str = None):
 
         url = f"{self._api_server_url}/check-status"
-        url += f"/{training_id}"
+        if training_id:
+            url += f"/{training_id}"
+        else:
+            url += f"/{self._response}"
 
         r = requests.get(url=url)
 
@@ -219,10 +230,13 @@ class Falcondale:
             print("Something went wrong.")
             return {}
 
-    def get_training_result(self, training_id) -> str:
+    def get_training_result(self, training_id: str = None) -> str:
 
         url = f"{self._api_server_url}/result"
-        url += f"/{training_id}"
+        if training_id:
+            url += f"/{training_id}"
+        else:
+            url += f"/{self._response}"
 
         r = requests.get(url=url)
 
