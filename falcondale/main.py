@@ -11,13 +11,14 @@ class Falcondale:
     def __init__(self,
                  api_key: Optional[str] = None,
                  api_secret_key: Optional[str] = None,
-                 api_server_url: str = "https://api.falcomdale.io"):
+                #  api_server_url: str = "https://api.falcomdale.io"):
+                 api_server_url: str = "https://api-falcondale.bsmk.xyz"):
 
         self._api_server_url = api_server_url
         self._trained_file = None
 
         #TODO: Taken from API secret auth
-        self._user_id = "test_user"
+        # self._user_id = "test_user"
 
     @property
     def user_id(self):
