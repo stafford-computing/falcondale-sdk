@@ -1,24 +1,24 @@
-[tool.poetry]
+
+[project]
 name = "falcondale"
 version = "0.1.0"
-description = ""
-authors = ["Your Name <you@example.com>"]
+description = "Falconale SDK"
+authors = [
+    {name = "Stafford Computing LLC", email = "info@staffordcomputing.com"},
+]
+dependencies = [
+    "requests>=2.31.0",
+    "pandas>=2.0.3",
+]
+requires-python = ">=3.9,<4"
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = ">=3.11,<4"
-requests = "^2.28.2"
-pandas = "^2.0.1"
-
-
-[tool.poetry.group.dev.dependencies]
-poethepoet = "^0.18.1"
-pytest = "^7.2.1"
-autopep8 = "^2.0.2"
-ipykernel = "^6.22.0"
-jupyter = "^1.0.0"
-notebook = "^6.5.3"
+license = {text = "MIT"}
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool.pdm.dev-dependencies]
+notebook = [
+    "ipykernel>=6.23.3",
+]

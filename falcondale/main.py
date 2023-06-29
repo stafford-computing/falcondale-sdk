@@ -5,6 +5,8 @@ from io import BufferedReader, BytesIO
 from typing import Optional
 from pathlib import Path
 
+from .utils import check_id
+
 import requests
 
 # Global configs
@@ -50,7 +52,7 @@ class Falcondale:
         self._user_id = user_id
 
     def upload_dataset(self,
-                       local_file: str | pd.DataFrame,
+                       local_file,
                        is_training:bool = True,
                        dataset_name:str = None):
         """
@@ -60,6 +62,11 @@ class Falcondale:
         if not self._user_id:
             # TODO: Handle exception instead of print
             print("User not defined. Assign your user_id first: model.user_id = 'user_id'")
+            return False
+
+        if not check_id(self._user_id):
+            # TODO: Handle exception instead of print
+            print("Invalid user_id")
             return False
 
         if not self._check_limits(local_file):
@@ -106,7 +113,7 @@ class Falcondale:
         print("Something went wrong.")
         return False
 
-    def _check_limits(self, local_file: str | pd.DataFrame):
+    def _check_limits(self, local_file):
         """
         Checks if the limits are met
         """
@@ -150,6 +157,11 @@ class Falcondale:
             print("User not defined. Call 'set_user' first, with your ID")
 
             return ""
+        
+        if not check_id(self._user_id):
+            # TODO: Handle exception instead of print
+            print("Invalid user_id")
+            return False
 
         if model_type == "QNN" and qnn_layers > 10:
             print(f"{qnn_layers} layers could be too much. Pick a number below 10.")
@@ -220,7 +232,11 @@ class Falcondale:
 
             return ""
 
-
+        if not check_id(self._user_id):
+            # TODO: Handle exception instead of print
+            print("Invalid user_id")
+            return False
+        
         url = f"{self._api_server_url}/predict/{self._user_id}"
         
         data = {

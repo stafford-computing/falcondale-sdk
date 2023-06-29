@@ -1,3 +1,3 @@
-from falcondale.main import Falcondale
+from .main import Falcondale
 
 __all__ = ["Falcondale"]
