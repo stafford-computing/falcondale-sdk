@@ -1,16 +1,13 @@
 import time
-import json
+import requests
+import logging
 import pandas as pd
-from io import BufferedReader, BytesIO
 from typing import Optional
 from pathlib import Path
-
-from .utils import check_id
-
-import requests
+from interruptingcow import timeout
 
 # Global configs
-TIMEOUT_LIMIT = 90
+TIMEOUT_LIMIT = 180
 MAX_ROWS = 500
 MAX_COLS = 300
 
@@ -22,7 +19,6 @@ class Falcondale:
     def __init__(self,
                  api_key: Optional[str] = None,
                  api_secret_key: Optional[str] = None,
-                #  api_server_url: str = "https://api.falcomdale.io"):
                  api_server_url: str = "https://api-falcondale.bsmk.xyz"):
 
         # API connection setup
@@ -60,18 +56,12 @@ class Falcondale:
         """
 
         if not self._user_id:
-            # TODO: Handle exception instead of print
-            print("User not defined. Assign your user_id first: model.user_id = 'user_id'")
-            return False
-
-        if not check_id(self._user_id):
-            # TODO: Handle exception instead of print
-            print("Invalid user_id")
-            return False
+            logging.error("User not defined. Assign your user_id first: model.user_id = 'user_id'")
+            return
 
         if not self._check_limits(local_file):
-            print("Dataset is too big. Should be under 500 observations and 300 features")
-            return False
+            logging.error("Dataset is too big. Should be under 500 observations and 300 features")
+            return
 
         # Select the endpoint
         endpoint = 'training' if is_training else 'predict'
@@ -91,6 +81,7 @@ class Falcondale:
                     files=files,
                     timeout=TIMEOUT_LIMIT # Timeout after 1.5 min
                 )
+
         elif isinstance(local_file, pd.DataFrame) and dataset_name:
             csv_str = local_file.to_csv(index=False)
             files = {"file": (f"{dataset_name}", str.encode(csv_str), "multipart/form-data")}
@@ -100,18 +91,18 @@ class Falcondale:
                 files=files,
                 timeout=TIMEOUT_LIMIT # Timeout after 1.5 min
             )
+
         else:
-            print("Either a local file is given or a Pandas dataframe and a datatset name associated with it.")
-            return False
+            logging.error("Either a local file is given or a Pandas dataframe and a datatset name associated with it.")
+            return
 
         if req and req.status_code == 200:
             self._response= req.json()
             print("Data has beed correctly uploaded!")
-            return True
+            return
 
         #Else
-        print("Something went wrong.")
-        return False
+        logging.error("Something went wrong.")
 
     def _check_limits(self, local_file):
         """
@@ -129,6 +120,7 @@ class Falcondale:
 
         return True
 
+    @timeout(TIMEOUT_LIMIT)
     def train(self,
               model_type: str,
               target_variable: str,
@@ -153,20 +145,13 @@ class Falcondale:
         self._validation_size = validation_size
         self._qnn_layers = qnn_layers
 
-        if (self._user_id is None):
-            print("User not defined. Call 'set_user' first, with your ID")
-
-            return ""
-        
-        if not check_id(self._user_id):
-            # TODO: Handle exception instead of print
-            print("Invalid user_id")
-            return False
+        if not self._user_id:
+            logging.error("User not defined. Call 'set_user' first, with your ID")
+            return
 
         if model_type == "QNN" and qnn_layers > 10:
-            print(f"{qnn_layers} layers could be too much. Pick a number below 10.")
-
-            return ""
+            logging.info(f"{qnn_layers} layers could be too much. Pick a number below 10.")
+            return
 
         url = f"{self._api_server_url}/train/{self._user_id}"
 
@@ -181,94 +166,71 @@ class Falcondale:
             "qnn_layers" : self._qnn_layers
         }
 
-        r = requests.post(
+        response = requests.post(
             url=url,
             json=data,
             timeout=TIMEOUT_LIMIT
         )
 
-        if r.status_code == 200:
-            training_id = r.json()
+        if response.status_code == 200:
+            training_id = response.json()
 
-            if (not is_async):
-                while (True):
-                    if (self.status(training_id) != 'COMPLETED'):
+            if not is_async:
+                while True:
+                    if self.status(training_id) != 'COMPLETED':
                         # print ("not ready, waiting 5 seconds")
                         time.sleep(5)
                     else:
                         return self.get_training_result(training_id)
 
             return training_id
-        
+
         #Else
-        print("Something went wrong.")
-        return ""
+        logging.error("Something went wrong.")
 
-    # def predict(self,
-    #             **kwargs):
-
-    #     if self._trained_file is None:
-    #         print("Please train/load the model first")
-    #         return
-
-    #     binary_data = BytesIO(json.dumps(kwargs).encode())
-
-    #     url = f"{self._api_server_url}/predict"
-    #     url += f"?model_type={self._model_type}"
-    #     url += f"&model_id={self._model_uuid}"
-
-    #     r = requests.post(
-    #         url=url, files={'csv_data': ("csv_data.csv", binary_data)})
-
-    #     return r
-
+    @timeout(TIMEOUT_LIMIT, TimeoutError)
     def predict(self,
                 model_name: str,
                 dataset_name: str,
                 is_async: bool = False):
-        
-        if (self._user_id is None):
-            print("User not defined. Call 'set_user' first, with your ID")
 
-            return ""
+        if not self._user_id:
+            logging.error("User not defined. Call 'set_user' first, with your ID")
+            return
 
-        if not check_id(self._user_id):
-            # TODO: Handle exception instead of print
-            print("Invalid user_id")
-            return False
-        
         url = f"{self._api_server_url}/predict/{self._user_id}"
-        
+
         data = {
             "filename" : dataset_name,
             "model_name" : model_name
         }
 
-        r = requests.post(
+        response = requests.post(
             url=url,
             json=data,
             timeout=TIMEOUT_LIMIT
         )
 
-        if r.status_code == 200:
-            prediction_id = r.json()
+        if response.status_code == 200:
+            prediction_id = response.json()
 
-            if (not is_async):
-                while (True):
-                    if (self.status(prediction_id) != 'COMPLETED'):
+            if not is_async:
+                while True:
+                    if self.status(prediction_id) != 'COMPLETED':
                         # print ("not ready, waiting 5 seconds")
                         time.sleep(5)
                     else:
                         return self.get_training_result(prediction_id)
 
             return prediction_id
-        
-        # Else
-        print("Something went wrong.")
-        return ""
-    
-    def get_current_workflow_id(self):
 
+        #Else
+        logging.error("Something went wrong.")
+
+    def get_current_workflow_id(self):
+        """
+        Returns workflow ID
+        """
         return self._response
 
     def feature_selection(self,
@@ -286,21 +248,24 @@ class Falcondale:
             "target" : target
         }
 
-        r = requests.post(
+        respose = requests.post(
             url=url,
             json=data,
             timeout=TIMEOUT_LIMIT
         )
 
-        if r.status_code == 200:
-            self._response= r.json()
+        if respose.status_code == 200:
+            self._response= respose.json()
 
             return True
 
-        print("Something went wrong.")
-        return False
+        #Else
+        logging.error("Something went wrong.")
 
     def status(self, training_id: str = None):
+        """
+        Checks the status of the job
+        """
 
         url = f"{self._api_server_url}/check-status"
         if training_id:
@@ -308,16 +273,16 @@ class Falcondale:
         else:
             url += f"/{self._response}"
 
-        r = requests.get(
+        respose = requests.get(
             url=url,
             timeout=TIMEOUT_LIMIT
         )
 
-        if r.status_code == 200:
-            return r.json()
-        
-        print("Something went wrong.")
-        return {}
+        if respose.status_code == 200:
+            return respose.json()
+
+        #Else
+        logging.error("Something went wrong.")
 
     def get_training_result(self, training_id: str = None) -> str:
 
@@ -327,14 +292,14 @@ class Falcondale:
         else:
             url += f"/{self._response}"
 
-        r = requests.get(
+        respose = requests.get(
             url=url,
             timeout=TIMEOUT_LIMIT
         )
 
-        if r.status_code == 200:
-            self._response = r.json()
+        if respose.status_code == 200:
+            self._response = respose.json()
             return self._response
 
-        print("Something went wrong.")
-        return None
+        #Else
+        logging.error("Something went wrong.")

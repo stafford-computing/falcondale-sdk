@@ -9,6 +9,7 @@ authors = [
 dependencies = [
     "requests>=2.31.0",
     "pandas>=2.0.3",
+    "interruptingcow>=0.8",
 ]
 requires-python = ">=3.9,<4"
 readme = "README.md"
