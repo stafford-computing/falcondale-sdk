@@ -1,305 +1,408 @@
-import time
-import requests
+# -*- coding: utf-8 -*-
+"""
+This is Falcondale's core package.
+
+Classes:
+    Model: Base model holding the main structure after training
+    Project: The main class that one can instantiate in order to
+        start playing around with Falcondale's functionalities
+
+        $ myproject = Project(dataset, target="target")
+"""
+from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
+import warnings
+
+warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
+warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
+
+import pickle
 import logging
 import pandas as pd
-from typing import Optional
-from pathlib import Path
-from interruptingcow import timeout
 
-# Global configs
-TIMEOUT_LIMIT = 180
-MAX_ROWS = 500
-MAX_COLS = 300
+from .data import Dataset
+from .classifiers import qsvc, qnn
+from .feature_selection import qfs, qfs_sim, qfs_sim_qaoa
+from .clustering import prob_q_clustering
 
-
-class Falcondale:
+class Model():
     """
-    Main Falcondale class
+    Model structure is the object class of models
+    trained with Falcondale Project's evaluate function.
+
+    Holds information regarding the model but also contains
+    required preprocessing steps (normalization, dimensionality reduction,...)
+    as well as the metrics obtained against testing data split while training.
     """
     def __init__(self,
-                 api_key: Optional[str] = None,
-                 api_secret_key: Optional[str] = None,
-                 api_server_url: str = "https://api-falcondale.bsmk.xyz"):
-
-        # API connection setup
-        self._api_key = api_key
-        self._api_secret = api_secret_key
-        self._api_server_url = api_server_url
-
-        # Set defaults
-        self._response = None
-        self._trained_file = None
-
-        #TODO: Taken from API secret auth
-        self._user_id = None
-
-    @property
-    def user_id(self):
+                 dataset: Dataset,
+                 m_type: str,
+                 model,
+                 classification_report,
+                 scores: dict):
         """
-        User id property
+        Inits the model structure with provided information.
+
+        Args:
+            dataset (Dataset): A Falcondale Dataset data structure.
+            m_type (str): Model type name associated with the training phase.
+                Should coincide with the options available in the evaluate method within Project.
+            model (object): A generic object with at least a predict function enabled.
+            classification_report (object): A sklearn.classification_report type of object
+            scores (dict): A dictionary containing the metrics for the model
         """
-        return self._user_id
+        self._data = dataset
+        self._type = m_type
+        self._model = model
+        self._creport = classification_report
+        self._scores = scores
 
-    @user_id.setter
-    def user_id(self, user_id):
+    def predict(self, data: pd.DataFrame) -> list[int]:
         """
-        User id setter
+        Predict function applied to the provided dataframe. It
+        also takes care of shaping it so that it will fit
+        in the scheme that the model expects.
+
+        Args:
+            data (pd.DataFrame): Pandas DataFrame
+
+        Returns:
+            list[int]: Predicted class
         """
-        self._user_id = user_id
+        features_df = self._data.transform(data)
+        return self._model.predict(features_df)
 
-    def upload_dataset(self,
-                       local_file,
-                       is_training:bool = True,
-                       dataset_name:str = None):
+    def list_metrics(self) -> list[str]:
         """
-        Obtains the information needed to upload the dataset to User's storage space
+        Returns the metric values stored provided by the training funnel.
+        This metrics are meant to evaluate models accuracy from different perspectives
+        and have a direct access to metrics contained within the classification report
+        in an easier way.
+
+        This metrics are collected during training time depending on each model but
+        in a general case will contain:
+
+        * Specificity or True Negative Rate
+        * Recall, sensitivity or True Positive Rate
+        * Precision or Positive Predictive Value
+        * Accuracy
+        * Balanced accuracy
+        * AUC
+        * F1 score
+
+        Returns:
+            list[str]: List of available metrics.
+
+        Example:
+            ```py
+            model.list_metrics()
+            ```
         """
+        return list(self._scores.keys())
 
-        if not self._user_id:
-            logging.error("User not defined. Assign your user_id first: model.user_id = 'user_id'")
-            return
+    def metric(self, metric_name: str) -> float:
+        """
+        Returns the metric values against the test dataset during
+        model training.
 
-        if not self._check_limits(local_file):
-            logging.error("Dataset is too big. Should be under 500 observations and 300 features")
-            return
+        Args:
+            metric_name (str): Metric name to obtain the value from
 
-        # Select the endpoint
-        endpoint = 'training' if is_training else 'predict'
-        url = f"{self._api_server_url}/upload/{endpoint}/{self._user_id}"
+        Returns:
+            float: Value of the metric
 
-        req = None
-        if isinstance(local_file, str):
-            with open(local_file, 'rb') as file:
-                if dataset_name:
-                    file_name = dataset_name
-                else:
-                    file_name = Path(local_file).name
-                files = {"file": (f"{file_name}", file, "multipart/form-data")}
+        Example:
+            ```py
+            model.metric('auc')
+            ```
+        """
+        if metric_name in self._scores:
+            return self._scores[metric_name]
 
-                req = requests.post(
-                    url=url,
-                    files=files,
-                    timeout=TIMEOUT_LIMIT # Timeout after 1.5 min
+        print("Requested metric not available")
+
+    def print_report(self):
+        """
+        Prints the classification report of the model taken from
+        sklearns classification report similar to:
+
+                          precision    recall  f1-score   support
+
+                       0       0.83      0.75      0.79        60
+                       1       0.87      0.92      0.89       111
+
+                accuracy                           0.86       171
+               macro avg       0.85      0.83      0.84       171
+            weighted avg       0.86      0.86      0.86       171
+        """
+        print(self._creport)
+
+class Project():
+    """
+    Base class defining the set of steps to be performed for a given project.
+
+    Wraps complex functionality calls and framework integrations so that it is
+    simpler for the user to call specific training or data processing functions.
+    """
+    def __init__(self,
+                 input_data: pd.DataFrame,
+                 target: str):
+        """
+        Initializes the Project class to perform a evaluations on different QML methods.
+
+        Falcondale is currently focused on supervised methods (even though it supports some
+        unsupervised methods for data clustering), that is why a target variable needs to be
+        provided.
+
+        Args:
+            input_data (pd.DataFrame): Pandas DataFrame
+            target (str): Target variable to be selected from the
+                input_data dataframe
+        """
+        self._data = Dataset(input_data, target)
+
+    def preprocess(self,
+                   reduced_dimension: int = None,
+                   method: str = None):
+        """
+        Performs information preprocessing to cleans the dataset. This is a mandatory
+        step in most cases as it helps the Falcondale framework to foresee some of the
+        tasks needed moving forward in particular for when 'auto' option is selected.
+
+        Mostly focused on data normalization, gap filling (missing values)
+        and duplicate entry removal. It also allows for simple dimensionality
+        reduction by indicating the reduced dimension size. This feature is
+        mainly used when specific models are selected as large feature spaced may
+        require more computational resources than the ones available on a common laptop.
+
+        Args:
+            reduced_dimension (int): (Optional) Reduces initial feature set to a lower
+                dimensional space.
+            method (str): (Optional) Currently only supports PCA in combination with
+                reduced_dimension parameter.
+
+        Example:
+            ```py
+            myproject.preprocess(reduced_dimension=3)
+            ```
+        """
+        self._data.preprocess(
+            reduced_dimension = reduced_dimension,
+            method = method)
+
+    def profile_dataset(self):
+        """
+        Profiles the dataset in order to identify potential issues with it.
+
+        It is basically a wrapper over YData's data profiler. 
+        """
+        return self._data._profile()
+
+    def show_features(self) -> pd.DataFrame:
+        """
+        Returns the features as they are internally used by the framework.
+
+        Returns:
+            pd.DataFrame: Pandas dataframe with the actual features being used within the Framework
+        """
+        return self._data.get_features()
+
+    def feature_selection(self, max_cols:int, method:str="qa", **kwargs) -> list[str]:
+        """
+        Performs the quantum feature selection to reduce the columns to be used selecting
+        the obtained features as the ones to be used in following steps.
+
+        Currently supports binary classification methods:
+
+        * **qa**: For Quantum Annealing
+        * **qaoa**: For Quantum Approximate Optimization Algorithm
+
+        Examples:
+            Can be called from Project instance:
+
+            ```py
+
+            features = myproject.feature_selection(max_cols, method)
+            ```
+
+        Args:
+            max_cols (int): Maximum number of features to be selected
+            method (str): (default qa) Method to be used when trying to find the
+        optimal set of features
+
+        Returns:
+            list[str]: The list of selected features.
+
+            This are also the features that will be included in the project as the current
+            selection of features for following steps within the project.
+
+        """
+        method = method.lower()
+        
+        if max_cols > len(self._data._columns):
+            print("Your previous selection is in force, preprocess the dataset to start over.")
+            return None
+        
+        if method == "qaoa":
+            if len(self._data.columns()) > 10:
+                print(f"{len(self._data.columns())} columns may require too much memory and can cause the kernel to fail.")
+
+            feature_cols = qfs_sim_qaoa(max_cols = max_cols, input_ds = self._data)
+            self._data.set_features(feature_cols)
+
+            return feature_cols
+        else:
+            if "token" in kwargs:
+                token = kwargs['token']
+
+                feature_cols = qfs(token = token, max_cols = max_cols, input_ds = self._data)
+                self._data.set_features(feature_cols)
+
+                return feature_cols
+            else:
+                feature_cols = qfs_sim(max_cols = max_cols, input_ds = self._data)
+                self._data.set_features(feature_cols)
+
+                return feature_cols
+
+    def list_options(self):
+        """
+        Lists what can be done with Falcondale. A simple hint on the available options.
+        """
+        print("Welcome to Falcondale SDK! you will be able to:")
+        print(" - Perform Quantum Feature Selection using Quantum Annealing or QAOA")
+        print(" - Train quantum-enhanced models such as QSVC or QNN")
+        print(" - Perform Quantum Clustering by pure quantum and quantum-inspired techniques")
+
+    def evaluate(self, model: str, test_size: float = 0.3, **kwargs) -> Model:
+        """
+        Given a set of methods implements their training and evaluates
+        performance for the initially given dataset.
+
+        Currently supports binary classification methods:
+
+        * **qsvc**: For Quantum Support Vector Classifier
+        * **qnn**: For Quantum Neural Network
+
+        Args:
+            model (str): Model name to be trained
+            test_size (float): (Optional) Test split size ratio.30% default
+
+        Returns:
+            Model: A Falcondale Model instance holding the trained model
+                and some additional information
+
+        Examples:
+            Can be called from Project instance:
+
+            ```py
+
+            model = myproject.evaluate('<model_type>')
+            ```
+
+        """
+        model = model.lower()
+
+        if model == "qsvc":
+            qsvc_model, report, metrics = qsvc(
+                dataset = self._data, 
+                test_size=test_size
+            )
+            fmodel = Model(
+                self._data,
+                model,
+                qsvc_model,
+                report,
+                metrics
+            )
+            return fmodel
+
+        if model == "qnn":
+
+            if "layers" in kwargs:
+                layers = kwargs['layers']
+
+                qnn_model, report, metrics = qnn(
+                    dataset = self._data, 
+                    test_size=test_size,
+                    layers=layers
+                )
+            else:
+                qnn_model, report, metrics = qnn(
+                    dataset = self._data, 
+                    test_size=test_size
                 )
 
-        elif isinstance(local_file, pd.DataFrame) and dataset_name:
-            csv_str = local_file.to_csv(index=False)
-            files = {"file": (f"{dataset_name}", str.encode(csv_str), "multipart/form-data")}
-
-            req = requests.post(
-                url=url,
-                files=files,
-                timeout=TIMEOUT_LIMIT # Timeout after 1.5 min
+            fmodel = Model(
+                self._data,
+                model,
+                qnn_model,
+                report,
+                metrics
             )
+            return fmodel
 
-        else:
-            logging.error("Either a local file is given or a Pandas dataframe and a datatset name associated with it.")
-            return
+        return NotImplemented
 
-        if req and req.status_code == 200:
-            self._response= req.json()
-            print("Data has beed correctly uploaded!")
-            return
-
-        #Else
-        logging.error("Something went wrong.")
-
-    def _check_limits(self, local_file):
+    def cluster(self, ctype:str, **kwargs) -> (list[int], list[float]):
         """
-        Checks if the limits are met
+        Given a type of clustering it is implemented using the
+        information of the inner Dataset. Essentially takes the features
+        to produce an estimate on the different segments it could be composed by.
+
+        Currently supports:
+
+        * **pqc**: For Probabilistic Quantum Clustering
+
+        Examples:
+            Can be called from Project instance:
+
+            ```py
+
+            label, label_prob = myproject.cluster(ctype='<model_type>')
+            ```
+
+        Args:
+            ctype (str): Type of clustering to be performed
+
+        Returns:
+            (list[int], list[float]): A tuple containing the assigned cluster label
+                and its likelihood or label probability.
         """
-        # Evaluate the input
-        if isinstance(local_file, str):
-            local_df = pd.read_csv(local_file)
-        else:
-            local_df = local_file
+        ctype = ctype.lower()
 
-        # Condition
-        if len(local_df) > MAX_ROWS | len(local_df.columns) > MAX_COLS:
-            return False
+        if ctype == "pqc":
 
-        return True
+            sigma = None
+            if "sigma" in kwargs:
+                sigma = kwargs['sigma']
 
-    @timeout(TIMEOUT_LIMIT)
-    def train(self,
-              model_type: str,
-              target_variable: str,
-              dataset_name = str,
-              model_backend: str = "qiskit",
-              qnn_layers: int = 3,
-              feature_selection_type: str = "",
-              feature_selection_token: str = "",
-              validation_size: float = 0.4,
-              is_async: bool = False) -> str:
+            return prob_q_clustering(input_ds = self._data, forced_sigma=sigma)
+
+        return NotImplemented
+
+    def save_model(self, model: Model, name: str):
         """
-        Core functionality providing the information needed
-        to train a model of the supported types.
+        Saves the model under the filename provided.
+
+        Args:
+            model (Model): A Falcondale model type of object
+            name (str): File name
         """
+        with open(name, 'wb') as handle:
+            pickle.dump(model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-        self._model_type = model_type
-        self._model_backend = model_backend
-        self._feature_selection_type = feature_selection_type
-        self._feature_selection_token = feature_selection_token
-        self._target_variable = target_variable
-        self._csv_data_filename = dataset_name
-        self._validation_size = validation_size
-        self._qnn_layers = qnn_layers
-
-        if not self._user_id:
-            logging.error("User not defined. Call 'set_user' first, with your ID")
-            return
-
-        if model_type == "QNN" and qnn_layers > 10:
-            logging.info(f"{qnn_layers} layers could be too much. Pick a number below 10.")
-            return
-
-        url = f"{self._api_server_url}/train/{self._user_id}"
-
-        data = {
-            "model_backend" : self._model_backend,
-            "model_type" : self._model_type,
-            "feature_selection_type" : self._feature_selection_type,
-            "feature_selection_token" : self._feature_selection_token,
-            "target" : self._target_variable,
-            "filename" : self._csv_data_filename,
-            "validation_size": self._validation_size,
-            "qnn_layers" : self._qnn_layers
-        }
-
-        response = requests.post(
-            url=url,
-            json=data,
-            timeout=TIMEOUT_LIMIT
-        )
-
-        if response.status_code == 200:
-            training_id = response.json()
-
-            if not is_async:
-                while True:
-                    if self.status(training_id) != 'COMPLETED':
-                        # print ("not ready, waiting 5 seconds")
-                        time.sleep(5)
-                    else:
-                        return self.get_training_result(training_id)
-
-            return training_id
-
-        #Else
-        logging.error("Something went wrong.")
-
-    @timeout(TIMEOUT_LIMIT, TimeoutError)
-    def predict(self,
-                model_name: str,
-                dataset_name: str,
-                is_async: bool = False):
-
-        if not self._user_id:
-            logging.error("User not defined. Call 'set_user' first, with your ID")
-            return
-
-        url = f"{self._api_server_url}/predict/{self._user_id}"
-
-        data = {
-            "filename" : dataset_name,
-            "model_name" : model_name
-        }
-
-        response = requests.post(
-            url=url,
-            json=data,
-            timeout=TIMEOUT_LIMIT
-        )
-
-        if response.status_code == 200:
-            prediction_id = response.json()
-
-            if not is_async:
-                while True:
-                    if self.status(prediction_id) != 'COMPLETED':
-                        # print ("not ready, waiting 5 seconds")
-                        time.sleep(5)
-                    else:
-                        return self.get_training_result(prediction_id)
-
-            return prediction_id
-
-        #Else
-        logging.error("Something went wrong.")
-
-    def get_current_workflow_id(self):
+    def load_model(self, name: str) -> Model:
         """
-        Returns workflow ID
+        Loads a Falcondale type of model from the
+        provided file name.
+
+        Args:
+            name (str) : File name
+
+        Returns:
+            Model: Falcondale Model type
         """
-        return self._response
+        with open(name, 'rb') as handle:
+            model = pickle.load(handle)
 
-    def feature_selection(self,
-                selection_type: str,
-                target: str,
-                dataset_name: str,
-                token: str = ""):
-
-        url = f"{self._api_server_url}/feature-selection/{self.user_id}"
-
-        data = {
-            "filename" : dataset_name,
-            "feature_selection_type" : selection_type,
-            "token" : token,
-            "target" : target
-        }
-
-        respose = requests.post(
-            url=url,
-            json=data,
-            timeout=TIMEOUT_LIMIT
-        )
-
-        if respose.status_code == 200:
-            self._response= respose.json()
-
-            return True
-
-        #Else
-        logging.error("Something went wrong.")
-
-    def status(self, training_id: str = None):
-        """
-        Checks the status of the job
-        """
-
-        url = f"{self._api_server_url}/check-status"
-        if training_id:
-            url += f"/{training_id}"
-        else:
-            url += f"/{self._response}"
-
-        respose = requests.get(
-            url=url,
-            timeout=TIMEOUT_LIMIT
-        )
-
-        if respose.status_code == 200:
-            return respose.json()
-
-        #Else
-        logging.error("Something went wrong.")
-
-    def get_training_result(self, training_id: str = None) -> str:
-
-        url = f"{self._api_server_url}/result"
-        if training_id:
-            url += f"/{training_id}"
-        else:
-            url += f"/{self._response}"
-
-        respose = requests.get(
-            url=url,
-            timeout=TIMEOUT_LIMIT
-        )
-
-        if respose.status_code == 200:
-            self._response = respose.json()
-            return self._response
-
-        #Else
-        logging.error("Something went wrong.")
+        return model
