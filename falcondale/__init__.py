@@ -1,3 +1,3 @@
-from falcondale.main import Falcondale
+from falcondale.main import Project, Model
 
-__all__ = ["Falcondale"]
+__all__ = ["Project", "Model"]

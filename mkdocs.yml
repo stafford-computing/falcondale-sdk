@@ -1,0 +1,88 @@
+site_name: SDK
+repo_url: https://github.com/stafford-computing/falcondale-sdk
+repo_name: stafford-computing/falcondale-sdk
+site_dir: site
+nav:
+  - Welcome:
+    - 'index.md'
+  - Getting Started:
+    - Installation: 'gettingstarted/installation.md'
+    - Features : 'gettingstarted/features.md'
+    - Quickstart: 'gettingstarted/Basic usage.ipynb'
+    - Collaborate: 'gettingstarted/contribute.md'
+    - Support : 'gettingstarted/support.md'
+  - Modules:
+    - Data manipulation: 'techniques/datamanipulation.md'
+    - Feature Selection: 'techniques/featureselection.md'
+    - Classification: 'techniques/models.md'
+    - Clustering: 'techniques/clustering.md'
+  - More examples:
+    - Advanced usage: 'examples/Advanced example.ipynb'
+    - Clustering: 'examples/Clustering examples.ipynb'
+  - Reference:
+    - 'reference.md'
+
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: black
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: black
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.footer
+    - header.autohide
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - toc.follow
+    - toc.integrate
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - md_in_html
+  - pymdownx.arithmatex:
+      generic: true
+  - attr_list
+  - md_in_html
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+watch:
+  - falcondale
+plugins:
+  - mkdocs-jupyter:
+      execute: False
+      no_input: False
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
