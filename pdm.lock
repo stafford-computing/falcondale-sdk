@@ -6,7 +6,7 @@ groups = ["default", "notebook", "documentation"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:4e8536fccf24d409c0f22964f4532b1cd25463235a85601b7725414b5f70dac1"
+content_hash = "sha256:f05dbebf73a30ca6b2527fd5a2000413b8440284d158c1022a5e40e7beefc784"
 
 [[package]]
 name = "absl-py"
@@ -2980,6 +2980,21 @@ summary = "Easily download, build, install, upgrade, and uninstall Python packag
 files = [
     {file = "setuptools-68.2.2-py3-none-any.whl", hash = "sha256:b454a35605876da60632df1a60f736524eb73cc47bbc9f3f1ef1b644de74fd2a"},
     {file = "setuptools-68.2.2.tar.gz", hash = "sha256:4ac1475276d2f1c48684874089fefcd83bd7162ddaafb81fac866ba0db282a87"},
+]
+
+[[package]]
+name = "simulated-bifurcation"
+version = "1.2.0"
+requires_python = ">=3.8"
+summary = "Efficient implementation of the quantum-inspired Simulated Bifurcation (SB) algorithm to solve Ising-like problems."
+dependencies = [
+    "numpy",
+    "torch>=2.0.1",
+    "tqdm",
+]
+files = [
+    {file = "simulated-bifurcation-1.2.0.tar.gz", hash = "sha256:0f1558b09f15fca4cdbce1b02df8f7b97e9fb434a61d422de9c5564bf7c19906"},
+    {file = "simulated_bifurcation-1.2.0-py3-none-any.whl", hash = "sha256:80c4ab805ca7b8b1ed24b515aab67deb228f38f8e6c472c28b3f23e3aa972985"},
 ]
 
 [[package]]

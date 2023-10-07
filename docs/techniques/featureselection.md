@@ -17,7 +17,13 @@ The tricky thing comes when this QUBO formulation needs to be embedded into a qu
 model.feature_selection(max_cols=3)
 ```
 
-It will trigger a feature selection workflow targeting *survived* feature in above example for the Titanic dataset. By default it provides Quantum Annealing option to solve the problem but this problem can also be tackled by digitized computers, mostly using variational techniques such as QAOA. One of the main challenges when approaching variational techniques is the challenge of simulation a complex evolution iterating over its parametrization. This is why quantum annealing is the _de facto_ method, as going for the variational approach could cause kernel to fail due to resource allocation for large datasets.
+It will trigger a feature selection workflow targeting *survived* feature in above example for the Titanic dataset. By default, and if no additional information is provided, it will try to either solve it using an exact solver or if the number of features to select from is large enough a simulated bifurcation solver will be applied. This can also be triggered by explicitly indicating it.
+
+```python
+model.feature_selection(max_cols=3, method="sb")
+```
+
+The antural option to solve our QUBO formulation is to use a Quantum Annealing option, but this problem can also be tackled by digitized computers, mostly using variational techniques such as QAOA. One of the main challenges when approaching variational techniques is the challenge of simulation a complex evolution iterating over its parametrization. This is why quantum annealing is the _de facto_ method, as going for the variational approach could cause kernel to fail due to resource allocation for large datasets.
 
 ```python
 model.feature_selection(max_cols=3, method="qaoa")

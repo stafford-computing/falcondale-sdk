@@ -8,6 +8,10 @@ Official documentation can be found here: https://falcondale.readthedocs.io/en/l
 
 To check the roadmap of the project, have a look to: https://github.com/orgs/stafford-computing/projects/2
 
+## How to contribute
+
+Check out the [wiki](https://github.com/stafford-computing/falcondale-sdk/wiki/How-to-contribute) for the latest convention on how to contribute.
+
 ## Authors
 
 * [Stafford Computing LLC](https://www.staffordcomputing.com/)

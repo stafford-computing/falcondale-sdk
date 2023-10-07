@@ -21,7 +21,7 @@ import pandas as pd
 
 from .data import Dataset
 from .classifiers import qsvc, qnn
-from .feature_selection import qfs, qfs_sim, qfs_sim_qaoa
+from .feature_selection import qfs, qfs_neal, qfs_sb, qfs_sim_qaoa
 from .clustering import prob_q_clustering
 
 class Model():
@@ -237,16 +237,22 @@ class Project():
 
         """
         method = method.lower()
-        
+
         if max_cols > len(self._data._columns):
             print("Your previous selection is in force, preprocess the dataset to start over.")
             return None
-        
+
         if method == "qaoa":
             if len(self._data.columns()) > 10:
                 print(f"{len(self._data.columns())} columns may require too much memory and can cause the kernel to fail.")
 
             feature_cols = qfs_sim_qaoa(max_cols = max_cols, input_ds = self._data)
+            self._data.set_features(feature_cols)
+
+            return feature_cols
+        elif method == "sb":
+            # Locally simulate using simulated bifurcation
+            feature_cols = qfs_sb(max_cols = max_cols, input_ds = self._data)
             self._data.set_features(feature_cols)
 
             return feature_cols
@@ -258,8 +264,15 @@ class Project():
                 self._data.set_features(feature_cols)
 
                 return feature_cols
+            elif len(self._data._columns) > 20:
+                print("Using Simulated Bifurcation for large datasets")
+                # Locally simulate using simulated bifurcation
+                feature_cols = qfs_sb(max_cols = max_cols, input_ds = self._data)
+                self._data.set_features(feature_cols)
+
+                return feature_cols
             else:
-                feature_cols = qfs_sim(max_cols = max_cols, input_ds = self._data)
+                feature_cols = qfs_neal(max_cols = max_cols, input_ds = self._data)
                 self._data.set_features(feature_cols)
 
                 return feature_cols
