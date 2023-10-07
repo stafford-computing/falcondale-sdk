@@ -213,7 +213,14 @@ def qfs_sb(input_ds:Dataset, max_cols:int = None) -> list[str]:
     J_torch = torch.tensor(J_mat, dtype=torch.float32)
 
     # Binary minimization
-    solution, _ = sb.minimize(J_torch, h_torch, input_type='spin')
+    solution, _ = sb.minimize(
+        J_torch,
+        h_torch,
+        input_type='spin',
+        best_only=True,
+        heated=False,
+        ballistic=True,
+        verbose=False)
 
     col_list = []
     for mask, column in zip(solution, input_ds._columns):

@@ -22,8 +22,9 @@ It will trigger a feature selection workflow targeting *survived* feature in abo
 ```python
 model.feature_selection(max_cols=3, method="sb")
 ```
+By default it uses the ballistic approach that should converge faster but might be prone to local miniam instead of global solutions, as described in the original work by [Kanao et al.](https://www.nature.com/articles/s42005-022-00929-9). More options will be enabled in the future for heated and discrete SB.
 
-The antural option to solve our QUBO formulation is to use a Quantum Annealing option, but this problem can also be tackled by digitized computers, mostly using variational techniques such as QAOA. One of the main challenges when approaching variational techniques is the challenge of simulation a complex evolution iterating over its parametrization. This is why quantum annealing is the _de facto_ method, as going for the variational approach could cause kernel to fail due to resource allocation for large datasets.
+The natural option to solve our QUBO formulation is to use a Quantum Annealing option, but this problem can also be tackled by digitized computers, mostly using variational techniques such as QAOA. One of the main challenges when approaching variational techniques is the challenge of simulation a complex evolution iterating over its parametrization. This is why quantum annealing is the _de facto_ method, as going for the variational approach could cause kernel to fail due to resource allocation for large datasets.
 
 ```python
 model.feature_selection(max_cols=3, method="qaoa")
