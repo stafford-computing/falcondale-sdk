@@ -317,7 +317,7 @@ class Project():
 
         if model == "qsvc":
             qsvc_model, report, metrics = qsvc(
-                dataset = self._data, 
+                dataset = self._data,
                 test_size=test_size
             )
             fmodel = Model(
@@ -335,7 +335,7 @@ class Project():
                 layers = kwargs['layers']
 
                 qnn_model, report, metrics = qnn(
-                    dataset = self._data, 
+                    dataset = self._data,
                     test_size=test_size,
                     layers=layers
                 )
