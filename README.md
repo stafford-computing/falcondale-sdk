@@ -1,4 +1,4 @@
-![falcondale](assets/falcondale_sdk_black.png)
+![falcondale](https://github.com/stafford-computing/falcondale-sdk/blob/main/assets/falcondale_sdk_black.png?raw=true)
 
 Falcondale Software Development Kit (SDK) is an open source project aiming to ease the barrier for Data Scientists entering the field of Quantum Machine Learning.
 
