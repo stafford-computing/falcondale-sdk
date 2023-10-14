@@ -206,14 +206,16 @@ class Project():
         """
         return self._data.get_features()
 
-    def feature_selection(self, max_cols:int, method:str="qa", **kwargs) -> list[str]:
+    def feature_selection(self, max_cols:int, method:str="sa", **kwargs) -> list[str]:
         """
         Performs the quantum feature selection to reduce the columns to be used selecting
         the obtained features as the ones to be used in following steps.
 
         Currently supports binary classification methods:
 
-        * **qa**: For Quantum Annealing
+        * **sa**: For Simulated Annealing
+        * **sb**: For Simulated Bifurcation
+        * **qa**: For Quantum Annealing (also if token is provided)
         * **qaoa**: For Quantum Approximate Optimization Algorithm
 
         Examples:
@@ -261,13 +263,6 @@ class Project():
                 token = kwargs['token']
 
                 feature_cols = qfs(token = token, max_cols = max_cols, input_ds = self._data)
-                self._data.set_features(feature_cols)
-
-                return feature_cols
-            elif len(self._data._columns) > 20:
-                print("Using Simulated Bifurcation for large datasets")
-                # Locally simulate using simulated bifurcation
-                feature_cols = qfs_sb(max_cols = max_cols, input_ds = self._data)
                 self._data.set_features(feature_cols)
 
                 return feature_cols

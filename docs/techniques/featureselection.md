@@ -17,12 +17,12 @@ The tricky thing comes when this QUBO formulation needs to be embedded into a qu
 model.feature_selection(max_cols=3)
 ```
 
-It will trigger a feature selection workflow targeting *survived* feature in above example for the Titanic dataset. By default, and if no additional information is provided, it will try to either solve it using an exact solver or if the number of features to select from is large enough a simulated bifurcation solver will be applied. This can also be triggered by explicitly indicating it.
+It will trigger a feature selection workflow targeting *survived* feature in above example for the Titanic dataset. By default, and if no additional information is provided, it will try to solve it using Simulated Annealing provided by DWave's neal package. If we think the problem is large enough or simulated annealing cannot provide the solution close to what we would like, we can select different modalities fot it to be solved, such as **simulated bifurcation**. Simulated bifurcation is a technique know to work even with large problems, such as a 2000 spin MAX-CUT problem as shown by the original work by [Goto et al.](https://www.science.org/doi/10.1126/sciadv.aav2372).
 
 ```python
 model.feature_selection(max_cols=3, method="sb")
 ```
-By default it uses the ballistic approach that should converge faster but might be prone to local miniam instead of global solutions, as described in the original work by [Kanao et al.](https://www.nature.com/articles/s42005-022-00929-9). More options will be enabled in the future for heated and discrete SB.
+By default it uses the ballistic approach that should converge faster but might be prone to local minima instead of global solutions, as described in the original work by [Kanao et al.](https://www.nature.com/articles/s42005-022-00929-9). More options will be enabled in the future for heated and discrete SB.
 
 The natural option to solve our QUBO formulation is to use a Quantum Annealing option, but this problem can also be tackled by digitized computers, mostly using variational techniques such as QAOA. One of the main challenges when approaching variational techniques is the challenge of simulation a complex evolution iterating over its parametrization. This is why quantum annealing is the _de facto_ method, as going for the variational approach could cause kernel to fail due to resource allocation for large datasets.
 
