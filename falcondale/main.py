@@ -21,7 +21,7 @@ import pandas as pd
 
 from .data import Dataset
 from .classifiers import qsvc, qnn
-from .feature_selection import qfs, qfs_sim, qfs_sim_qaoa
+from .feature_selection import qfs, qfs_neal, qfs_sb, qfs_sim_qaoa
 from .clustering import prob_q_clustering
 
 class Model():
@@ -206,14 +206,16 @@ class Project():
         """
         return self._data.get_features()
 
-    def feature_selection(self, max_cols:int, method:str="qa", **kwargs) -> list[str]:
+    def feature_selection(self, max_cols:int, method:str="sa", **kwargs) -> list[str]:
         """
         Performs the quantum feature selection to reduce the columns to be used selecting
         the obtained features as the ones to be used in following steps.
 
         Currently supports binary classification methods:
 
-        * **qa**: For Quantum Annealing
+        * **sa**: For Simulated Annealing
+        * **sb**: For Simulated Bifurcation
+        * **qa**: For Quantum Annealing (also if token is provided)
         * **qaoa**: For Quantum Approximate Optimization Algorithm
 
         Examples:
@@ -237,16 +239,22 @@ class Project():
 
         """
         method = method.lower()
-        
+
         if max_cols > len(self._data._columns):
             print("Your previous selection is in force, preprocess the dataset to start over.")
             return None
-        
+
         if method == "qaoa":
             if len(self._data.columns()) > 10:
                 print(f"{len(self._data.columns())} columns may require too much memory and can cause the kernel to fail.")
 
             feature_cols = qfs_sim_qaoa(max_cols = max_cols, input_ds = self._data)
+            self._data.set_features(feature_cols)
+
+            return feature_cols
+        elif method == "sb":
+            # Locally simulate using simulated bifurcation
+            feature_cols = qfs_sb(max_cols = max_cols, input_ds = self._data)
             self._data.set_features(feature_cols)
 
             return feature_cols
@@ -259,7 +267,7 @@ class Project():
 
                 return feature_cols
             else:
-                feature_cols = qfs_sim(max_cols = max_cols, input_ds = self._data)
+                feature_cols = qfs_neal(max_cols = max_cols, input_ds = self._data)
                 self._data.set_features(feature_cols)
 
                 return feature_cols
@@ -304,7 +312,7 @@ class Project():
 
         if model == "qsvc":
             qsvc_model, report, metrics = qsvc(
-                dataset = self._data, 
+                dataset = self._data,
                 test_size=test_size
             )
             fmodel = Model(
@@ -322,7 +330,7 @@ class Project():
                 layers = kwargs['layers']
 
                 qnn_model, report, metrics = qnn(
-                    dataset = self._data, 
+                    dataset = self._data,
                     test_size=test_size,
                     layers=layers
                 )

@@ -6,12 +6,15 @@ import dimod
 import numpy as np
 import itertools
 
+# SB
+import torch
+import simulated_bifurcation as sb
+
 # Problem modelling imports
 from qiskit.result import QuasiDistribution
 from qiskit.quantum_info import SparsePauliOp
 from qiskit_algorithms import QAOA
 from qiskit_algorithms.optimizers import COBYLA
-from qiskit_optimization.algorithms import MinimumEigenOptimizer
 from qiskit_algorithms.utils.algorithm_globals import algorithm_globals
 from qiskit.primitives import Sampler
 
@@ -20,9 +23,16 @@ from .solvers import dwave_solver, neal_solver
 from .helpers.mutual_information import \
     conditional_mutual_information, mutual_information, prob
 
-def _compose_bqm(input_ds:Dataset, max_cols:int = None):
+def _compose_bqm(input_ds:Dataset, max_cols:int = None) -> dimod.BinaryQuadraticModel:
     """
-    Builds the QUBO required for QFS
+    Builds the QUBO required for QFS.
+
+    Args:
+        input_ds (dataset): Falcondale Dataset data type
+        max_cols (int): Maximum number of features to be selected
+
+    Returns:
+        BinaryQuadraticModel: Dimod model holding the BQM information
     """
 
     pauli_list = []
@@ -64,7 +74,7 @@ def _compose_bqm(input_ds:Dataset, max_cols:int = None):
 
     return bqm, op
 
-def _sample_most_likely(state_vector):
+def _sample_most_likely(state_vector) -> np.array:
     """Compute the most likely binary string from state vector.
     Args:
         state_vector: State vector or quasi-distribution.
@@ -82,12 +92,18 @@ def _sample_most_likely(state_vector):
     x.reverse()
     return np.asarray(x)
 
-def qfs_sim_qaoa(input_ds:Dataset, max_cols:int = None):
-    """ Compose the problem to run on a locally simulated QAOA setup"""
+def qfs_sim_qaoa(input_ds:Dataset, max_cols:int = None) -> list[str]:
+    """ Compose the problem to run on a locally simulated QAOA setup
+    
+    Args:
+        input_ds (dataset): Falcondale Dataset data type
+        max_cols (int): Maximum number of features to be selected
 
-    bqm, qubit_op = _compose_bqm(input_ds, max_cols)
+    Returns:
+        list[str] : Selected column list
+    """
 
-    qubo, _ = bqm.to_qubo()
+    _, qubit_op = _compose_bqm(input_ds, max_cols)
 
     algorithm_globals.random_seed = 12345
     optimizer = COBYLA()
@@ -112,12 +128,13 @@ def qfs(token:str, input_ds:Dataset, max_cols:int = None) -> list[str]:
     - https://dl.acm.org/citation.cfm?id=2623611
     - https://arxiv.org/pdf/2203.13261.pdf
 
-    Parameters:
-    token (str) : Token for the DWave connectivity
-    input (DataFrame): receives a pandas Dataframe
+    Args:
+        token (str) : Token for the DWave connectivity
+        input_ds (dataset): Falcondale Dataset data type
+        max_cols (int): Maximum number of features to be selected
 
-    Return:
-    DataFrame: outputs the transformed dataset
+    Returns:
+        list[str] : Selected column list
     """
 
     bqm, _ = _compose_bqm(input_ds, max_cols)
@@ -133,7 +150,7 @@ def qfs(token:str, input_ds:Dataset, max_cols:int = None) -> list[str]:
 
     return col_list
 
-def qfs_sim(input_ds:Dataset, max_cols:int = None) -> list[str]:
+def qfs_neal(input_ds:Dataset, max_cols:int = None) -> list[str]:
     """
     Implements a QUBO problem so that the set of features to be used can be implemented on
     a quantum simulated annealer.
@@ -142,12 +159,12 @@ def qfs_sim(input_ds:Dataset, max_cols:int = None) -> list[str]:
     - https://dl.acm.org/citation.cfm?id=2623611
     - https://arxiv.org/pdf/2203.13261.pdf
 
-    Parameters:
-    token (str) : Token for the DWave connectivity
-    input (DataFrame): receives a pandas Dataframe
+    Args:
+        input_ds (dataset): Falcondale Dataset data type
+        max_cols (int): Maximum number of features to be selected
 
-    Return:
-    DataFrame: outputs the transformed dataset
+    Returns:
+        list[str] : Selected column list
     """
 
     bqm, _ = _compose_bqm(input_ds, max_cols)
@@ -159,6 +176,55 @@ def qfs_sim(input_ds:Dataset, max_cols:int = None) -> list[str]:
     col_list = []
     for column in selection:
         if selection[column] == 1:
+            col_list.append(column)
+
+    return col_list
+
+
+def qfs_sb(input_ds:Dataset, max_cols:int = None) -> list[str]:
+    """
+    Implements a QUBO problem so that the set of features to be used can
+    be solved usign simulated bifurcation algorithm
+
+    Ref:
+    - https://github.com/bqth29/simulated-bifurcation-algorithm
+
+    Args:
+        input_ds (dataset): Falcondale Dataset data type
+        max_cols (int): Maximum number of features to be selected
+
+    Returns:
+        list[str] : Selected column list
+    """
+
+    bqm, _ = _compose_bqm(input_ds, max_cols)
+    h, J, _ = bqm.to_ising()
+
+    h_list = [0]*bqm.num_variables
+    J_mat = [[0]*bqm.num_variables]*bqm.num_variables
+    for i, col_i in enumerate(input_ds._columns):
+        h_list[i] = h[col_i]
+        for j, col_j in enumerate(input_ds._columns):
+            if (col_i,col_j) in J:
+                J_mat[i][j] = J[(col_i,col_j)]
+
+    # SB
+    h_torch = torch.tensor(h_list, dtype=torch.float32)
+    J_torch = torch.tensor(J_mat, dtype=torch.float32)
+
+    # Binary minimization
+    solution, _ = sb.minimize(
+        J_torch,
+        h_torch,
+        input_type='spin',
+        best_only=True,
+        heated=False,
+        ballistic=True,
+        verbose=False)
+
+    col_list = []
+    for mask, column in zip(solution, input_ds._columns):
+        if mask == 1:
             col_list.append(column)
 
     return col_list
