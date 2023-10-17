@@ -71,6 +71,21 @@ class Model():
         features_df = self._data.transform(data)
         return self._model.predict(features_df)
 
+    def predict_proba(self, data: pd.DataFrame) -> list[float]:
+        """
+        Probability of predicting the 1 class applied to the 
+        provided dataframe. It also takes care of shaping it so
+        that it will fit in the scheme that the model expects.
+
+        Args:
+            data (pd.DataFrame): Pandas DataFrame
+
+        Returns:
+            list[float]: Probability of predicting the 1 class
+        """
+        features_df = self._data.transform(data)
+        return self._model.predict_proba(features_df)[:,-1]
+
     def list_metrics(self) -> list[str]:
         """
         Returns the metric values stored provided by the training funnel.
