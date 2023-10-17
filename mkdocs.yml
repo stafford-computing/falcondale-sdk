@@ -18,6 +18,7 @@ nav:
     - Clustering: 'techniques/clustering.md'
   - More examples:
     - Advanced usage: 'examples/Advanced example.ipynb'
+    - Feature selection: 'examples/Feature selection options.ipynb'
     - Clustering: 'examples/Clustering examples.ipynb'
   - Reference:
     - 'reference.md'
