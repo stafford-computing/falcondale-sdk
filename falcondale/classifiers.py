@@ -11,11 +11,11 @@ from sklearn.metrics import (
     confusion_matrix
 )
 
-from qiskit_aer import AerSimulator
-from qiskit.utils import QuantumInstance
+from qiskit.primitives import Sampler
 from qiskit.circuit.library import ZZFeatureMap
+from qiskit.algorithms.state_fidelities import ComputeUncompute
 
-from qiskit_machine_learning.kernels import QuantumKernel
+from qiskit_machine_learning.kernels import FidelityQuantumKernel
 from qiskit_machine_learning.algorithms import QSVC
 
 
@@ -112,15 +112,13 @@ def qsvc(dataset: Dataset, test_size:float = 0.3):
     regularization_constant = 100
 
     # Defining backend and feature map to be used
-    backend = QuantumInstance(
-        AerSimulator(method='statevector')
-    )
+    fidelity = ComputeUncompute(sampler=Sampler())
 
     # ZZ feature map
     feature_map = ZZFeatureMap(feature_dimension=cols, reps=2)
 
     # Defining quantum kernel and qsvc
-    qkernel = QuantumKernel(feature_map=feature_map, quantum_instance=backend)
+    qkernel = FidelityQuantumKernel(feature_map=feature_map, fidelity=fidelity)
     qsvc = QSVC(quantum_kernel=qkernel, C=regularization_constant, probability=True)
 
     # Data splitting
