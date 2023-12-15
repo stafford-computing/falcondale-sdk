@@ -47,3 +47,7 @@ documentation = [
     "mkdocstrings[crystal,python]>=0.23.0",
     "mkdocs-jupyter>=0.24.2",
 ]
+dev = [
+    "pre-commit>=3.6.0",
+    "ruff>=0.1.8",
+]

@@ -9,22 +9,21 @@ Classes:
 
         $ myproject = Project(dataset, target="target")
 """
-from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
-import warnings
-
-warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
-warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
-
 import pickle
-import logging
+import warnings
 import pandas as pd
 
 from .data import Dataset
 from .classifiers import qsvc, qnn
 from .feature_selection import qfs, qfs_neal, qfs_sb, qfs_sim_qaoa
 from .clustering import prob_q_clustering
+from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
 
-class Model():
+warnings.simplefilter("ignore", category=NumbaDeprecationWarning)
+warnings.simplefilter("ignore", category=NumbaPendingDeprecationWarning)
+
+
+class Model:
     """
     Model structure is the object class of models
     trained with Falcondale Project's evaluate function.
@@ -33,12 +32,10 @@ class Model():
     required preprocessing steps (normalization, dimensionality reduction,...)
     as well as the metrics obtained against testing data split while training.
     """
-    def __init__(self,
-                 dataset: Dataset,
-                 m_type: str,
-                 model,
-                 classification_report,
-                 scores: dict):
+
+    def __init__(
+        self, dataset: Dataset, m_type: str, model, classification_report, scores: dict
+    ):
         """
         Inits the model structure with provided information.
 
@@ -73,7 +70,7 @@ class Model():
 
     def predict_proba(self, data: pd.DataFrame) -> list[float]:
         """
-        Probability of predicting the 1 class applied to the 
+        Probability of predicting the 1 class applied to the
         provided dataframe. It also takes care of shaping it so
         that it will fit in the scheme that the model expects.
 
@@ -84,7 +81,7 @@ class Model():
             list[float]: Probability of predicting the 1 class
         """
         features_df = self._data.transform(data)
-        return self._model.predict_proba(features_df)[:,-1]
+        return self._model.predict_proba(features_df)[:, -1]
 
     def list_metrics(self) -> list[str]:
         """
@@ -151,16 +148,16 @@ class Model():
         """
         print(self._creport)
 
-class Project():
+
+class Project:
     """
     Base class defining the set of steps to be performed for a given project.
 
     Wraps complex functionality calls and framework integrations so that it is
     simpler for the user to call specific training or data processing functions.
     """
-    def __init__(self,
-                 input_data: pd.DataFrame,
-                 target: str):
+
+    def __init__(self, input_data: pd.DataFrame, target: str):
         """
         Initializes the Project class to perform a evaluations on different QML methods.
 
@@ -175,9 +172,7 @@ class Project():
         """
         self._data = Dataset(input_data, target)
 
-    def preprocess(self,
-                   reduced_dimension: int = None,
-                   method: str = None):
+    def preprocess(self, reduced_dimension: int = None, method: str = None):
         """
         Performs information preprocessing to cleans the dataset. This is a mandatory
         step in most cases as it helps the Falcondale framework to foresee some of the
@@ -200,15 +195,13 @@ class Project():
             myproject.preprocess(reduced_dimension=3)
             ```
         """
-        self._data.preprocess(
-            reduced_dimension = reduced_dimension,
-            method = method)
+        self._data.preprocess(reduced_dimension=reduced_dimension, method=method)
 
     def profile_dataset(self):
         """
         Profiles the dataset in order to identify potential issues with it.
 
-        It is basically a wrapper over YData's data profiler. 
+        It is basically a wrapper over YData's data profiler.
         """
         return self._data._profile()
 
@@ -221,7 +214,9 @@ class Project():
         """
         return self._data.get_features()
 
-    def feature_selection(self, max_cols:int, method:str="sa", **kwargs) -> list[str]:
+    def feature_selection(
+        self, max_cols: int, method: str = "sa", **kwargs
+    ) -> list[str]:
         """
         Performs the quantum feature selection to reduce the columns to be used selecting
         the obtained features as the ones to be used in following steps.
@@ -256,33 +251,37 @@ class Project():
         method = method.lower()
 
         if max_cols > len(self._data._columns):
-            print("Your previous selection is in force, preprocess the dataset to start over.")
+            print(
+                "Your previous selection is in force, preprocess the dataset to start over."
+            )
             return None
 
         if method == "qaoa":
             if len(self._data.columns()) > 10:
-                print(f"{len(self._data.columns())} columns may require too much memory and can cause the kernel to fail.")
+                print(
+                    f"{len(self._data.columns())} columns may require too much memory and can cause the kernel to fail."
+                )
 
-            feature_cols = qfs_sim_qaoa(max_cols = max_cols, input_ds = self._data)
+            feature_cols = qfs_sim_qaoa(max_cols=max_cols, input_ds=self._data)
             self._data.set_features(feature_cols)
 
             return feature_cols
         elif method == "sb":
             # Locally simulate using simulated bifurcation
-            feature_cols = qfs_sb(max_cols = max_cols, input_ds = self._data)
+            feature_cols = qfs_sb(max_cols=max_cols, input_ds=self._data)
             self._data.set_features(feature_cols)
 
             return feature_cols
         else:
             if "token" in kwargs:
-                token = kwargs['token']
+                token = kwargs["token"]
 
-                feature_cols = qfs(token = token, max_cols = max_cols, input_ds = self._data)
+                feature_cols = qfs(token=token, max_cols=max_cols, input_ds=self._data)
                 self._data.set_features(feature_cols)
 
                 return feature_cols
             else:
-                feature_cols = qfs_neal(max_cols = max_cols, input_ds = self._data)
+                feature_cols = qfs_neal(max_cols=max_cols, input_ds=self._data)
                 self._data.set_features(feature_cols)
 
                 return feature_cols
@@ -294,7 +293,9 @@ class Project():
         print("Welcome to Falcondale SDK! you will be able to:")
         print(" - Perform Quantum Feature Selection using Quantum Annealing or QAOA")
         print(" - Train quantum-enhanced models such as QSVC or QNN")
-        print(" - Perform Quantum Clustering by pure quantum and quantum-inspired techniques")
+        print(
+            " - Perform Quantum Clustering by pure quantum and quantum-inspired techniques"
+        )
 
     def evaluate(self, model: str, test_size: float = 0.3, **kwargs) -> Model:
         """
@@ -326,47 +327,28 @@ class Project():
         model = model.lower()
 
         if model == "qsvc":
-            qsvc_model, report, metrics = qsvc(
-                dataset = self._data,
-                test_size=test_size
-            )
-            fmodel = Model(
-                self._data,
-                model,
-                qsvc_model,
-                report,
-                metrics
-            )
+            qsvc_model, report, metrics = qsvc(dataset=self._data, test_size=test_size)
+            fmodel = Model(self._data, model, qsvc_model, report, metrics)
             return fmodel
 
         if model == "qnn":
-
             if "layers" in kwargs:
-                layers = kwargs['layers']
+                layers = kwargs["layers"]
 
                 qnn_model, report, metrics = qnn(
-                    dataset = self._data,
-                    test_size=test_size,
-                    layers=layers
+                    dataset=self._data, test_size=test_size, layers=layers
                 )
             else:
                 qnn_model, report, metrics = qnn(
-                    dataset = self._data, 
-                    test_size=test_size
+                    dataset=self._data, test_size=test_size
                 )
 
-            fmodel = Model(
-                self._data,
-                model,
-                qnn_model,
-                report,
-                metrics
-            )
+            fmodel = Model(self._data, model, qnn_model, report, metrics)
             return fmodel
 
         return NotImplemented
 
-    def cluster(self, ctype:str, **kwargs) -> (list[int], list[float]):
+    def cluster(self, ctype: str, **kwargs) -> (list[int], list[float]):
         """
         Given a type of clustering it is implemented using the
         information of the inner Dataset. Essentially takes the features
@@ -394,12 +376,11 @@ class Project():
         ctype = ctype.lower()
 
         if ctype == "pqc":
-
             sigma = None
             if "sigma" in kwargs:
-                sigma = kwargs['sigma']
+                sigma = kwargs["sigma"]
 
-            return prob_q_clustering(input_ds = self._data, forced_sigma=sigma)
+            return prob_q_clustering(input_ds=self._data, forced_sigma=sigma)
 
         return NotImplemented
 
@@ -411,7 +392,7 @@ class Project():
             model (Model): A Falcondale model type of object
             name (str): File name
         """
-        with open(name, 'wb') as handle:
+        with open(name, "wb") as handle:
             pickle.dump(model, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def load_model(self, name: str) -> Model:
@@ -425,7 +406,7 @@ class Project():
         Returns:
             Model: Falcondale Model type
         """
-        with open(name, 'rb') as handle:
+        with open(name, "rb") as handle:
             model = pickle.load(handle)
 
         return model

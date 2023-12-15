@@ -2,7 +2,6 @@
 Module implementing generic QNN setups
 """
 import logging
-import pandas as pd
 
 import torch
 import torch.optim as optim
@@ -12,11 +11,12 @@ import pennylane as qml
 import pennylane.numpy as np
 
 
-class QNN():
+class QNN:
     """
     Pennylane based Quantum Neural Network
     """
-    def __init__(self, inputs:int, layers:int):
+
+    def __init__(self, inputs: int, layers: int):
         # Num of features
         self.inputs = inputs
 
@@ -46,7 +46,9 @@ class QNN():
         """
         Circuit definition (QNN model)
         """
-        qml.AmplitudeEmbedding(feat, range(self.num_qubits), pad_with=0.0, normalize=True)
+        qml.AmplitudeEmbedding(
+            feat, range(self.num_qubits), pad_with=0.0, normalize=True
+        )
 
         for W in weights:
             self.layer(W)
@@ -82,7 +84,10 @@ class QNN():
             # which distinguishes between "class 1" or "not class 1".
             s_true = self.variational_classifier(
                 self.qnodes[int(true_labels[i])],
-                (self.params[0][int(true_labels[i])], self.params[1][int(true_labels[i])]),
+                (
+                    self.params[0][int(true_labels[i])],
+                    self.params[1][int(true_labels[i])],
+                ),
                 feature_vec,
             )
             s_true = s_true.float()
@@ -92,9 +97,9 @@ class QNN():
             for j in range(self.num_classes):
                 if j != int(true_labels[i]):
                     s_j = self.variational_classifier(
-                        self.qnodes[j], 
+                        self.qnodes[j],
                         (self.params[0][j], self.params[1][j]),
-                        feature_vec
+                        feature_vec,
                     )
                     s_j = s_j.float()
                     li += torch.max(torch.zeros(1).float(), s_j - s_true)
@@ -111,9 +116,7 @@ class QNN():
             scores = np.zeros(self.num_classes)
             for c in range(self.num_classes):
                 score = self.variational_classifier(
-                    self.qnodes[c], 
-                    (self.params[0][c], self.params[1][c]),
-                    feature_vec
+                    self.qnodes[c], (self.params[0][c], self.params[1][c]), feature_vec
                 )
                 scores[c] = float(score)
             pred_class = np.argmax(scores)
@@ -129,9 +132,7 @@ class QNN():
             scores = np.zeros(self.num_classes)
             for c in range(self.num_classes):
                 score = self.variational_classifier(
-                    self.qnodes[c], 
-                    (self.params[0][c], self.params[1][c]),
-                    feature_vec
+                    self.qnodes[c], (self.params[0][c], self.params[1][c]), feature_vec
                 )
                 scores[c] = float(score)
             predicted_scores.append(scores)
@@ -142,19 +143,19 @@ class QNN():
         Computes the accuracy given some actuals and predictions
         """
         loss = 0
-        for l, p in zip(labels, hard_predictions):
-            if abs(l - p) < 1e-5:
+        for label, p in zip(labels, hard_predictions):
+            if abs(label - p) < 1e-5:
                 loss = loss + 1
         loss = loss / labels.shape[0]
         return loss
 
-    def fit(self, x_df, y_np, max_iterations:int = 20, early_stop:float = 0.98):
+    def fit(self, x_df, y_np, max_iterations: int = 20, early_stop: float = 0.98):
         """
         Main training function
         """
         logging.info("Training started...")
         num_train = len(x_df)
-        batch_size = int(num_train/10)
+        batch_size = int(num_train / 10)
         self.num_classes = len(np.unique(y_np))
 
         # build ansatz
@@ -165,11 +166,13 @@ class QNN():
 
         # Initialize the parameters
         all_weights = [
-            Variable(0.1 * torch.randn(self.layers, self.num_qubits, 3), requires_grad=True)
+            Variable(
+                0.1 * torch.randn(self.layers, self.num_qubits, 3), requires_grad=True
+            )
             for _ in range(self.num_classes)
         ]
         all_bias = [
-            Variable(0.1 * torch.ones(1), requires_grad=True) 
+            Variable(0.1 * torch.ones(1), requires_grad=True)
             for _ in range(self.num_classes)
         ]
         optimizer = optim.Adam(all_weights + all_bias, lr=0.01)
@@ -178,17 +181,13 @@ class QNN():
         costs, train_acc = [], []
         # train the variational classifier
         for iteration in range(max_iterations):
-
             # While df
             batch_index = np.random.randint(0, num_train, (batch_size,))
             feat_vec = x_df.to_numpy()[batch_index, :]
             y_train = y_np[batch_index]
 
             optimizer.zero_grad()
-            curr_cost = self.multiclass_loss(
-                feat_vec,
-                y_train
-            )
+            curr_cost = self.multiclass_loss(feat_vec, y_train)
             curr_cost.backward()
             optimizer.step()
 
@@ -197,8 +196,9 @@ class QNN():
             acc_train = self.accuracy(y_train, predictions_train)
 
             print(
-                "Iter: {:5d} | Cost: {:0.7f} | Acc train: {:0.7f}"
-                "".format(iteration + 1, curr_cost.item(), acc_train)
+                "Iter: {:5d} | Cost: {:0.7f} | Acc train: {:0.7f}" "".format(
+                    iteration + 1, curr_cost.item(), acc_train
+                )
             )
 
             costs.append(curr_cost.item())

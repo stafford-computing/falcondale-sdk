@@ -5,11 +5,7 @@ from .helpers.qnn import QNN
 from .data import Dataset
 
 from sklearn.svm import SVC
-from sklearn.metrics import (
-    classification_report,
-    roc_auc_score,
-    confusion_matrix
-)
+from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 
 from qiskit.primitives import Sampler
 from qiskit.circuit.library import ZZFeatureMap
@@ -24,6 +20,7 @@ class TooManyQubitsNeeded(Exception):
     Current devices cannot go beyond a defined
     number of qubits
     """
+
     max_qubits = 20
 
     def __init__(self, qubits, *args):
@@ -31,28 +28,28 @@ class TooManyQubitsNeeded(Exception):
         self.max_qubits = qubits
 
     def __str__(self):
-        return f'Too many qubits required {self.max_qubits}'
+        return f"Too many qubits required {self.max_qubits}"
 
 
 def _get_metrics(y_true, y_pred) -> dict:
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
 
-    tn, fp, fn, tp = confusion_matrix(y_true,y_pred).ravel()
-
-    tpr = tp/(tp+fn)
-    tnr = tn/(tn+fp)
+    tpr = tp / (tp + fn)
+    tnr = tn / (tn + fp)
 
     metrics = {
         "sensitivity": tpr,
         "recall": tnr,
-        "precision": tp/(tp+fp),
-        "f1": (2*tp)/(2*tp+fn+fp),
-        "accuracy": (tp+tn)/(tn+tp+fn+fp),
-        "balanced accuracy" : (tpr+tnr)/2
+        "precision": tp / (tp + fp),
+        "f1": (2 * tp) / (2 * tp + fn + fp),
+        "accuracy": (tp + tn) / (tn + tp + fn + fp),
+        "balanced accuracy": (tpr + tnr) / 2,
     }
 
     return metrics
 
-def eval_svc(dataset: Dataset, test_size:float = 0.3):
+
+def eval_svc(dataset: Dataset, test_size: float = 0.3):
     """
     Dataset classification using classical SVC method
     """
@@ -67,12 +64,13 @@ def eval_svc(dataset: Dataset, test_size:float = 0.3):
     # Testing
     y_pred = svc.predict(x_test)
     y_pred_proba = svc.predict_proba(x_test)[:, -1]
-    metrics = _get_metrics(y_test,y_pred)
+    metrics = _get_metrics(y_test, y_pred)
     metrics["auc"] = roc_auc_score(y_test, y_pred_proba)
 
     return svc, classification_report(y_test, y_pred), metrics
 
-def qnn(dataset: Dataset, test_size:float = 0.3, layers: int = 3):
+
+def qnn(dataset: Dataset, test_size: float = 0.3, layers: int = 3):
     """
     Dataset classification using QNN method
     """
@@ -80,10 +78,7 @@ def qnn(dataset: Dataset, test_size:float = 0.3, layers: int = 3):
     size = len(x_train.columns)
 
     # Instantiate the SVC
-    qnn = QNN(
-        inputs=size,
-        layers = layers
-    )
+    qnn = QNN(inputs=size, layers=layers)
 
     # Training
     qnn.fit(x_train, y_train)
@@ -91,13 +86,13 @@ def qnn(dataset: Dataset, test_size:float = 0.3, layers: int = 3):
     # Testing
     y_pred = qnn.predict(x_test)
     y_pred_proba = qnn.predict_proba(x_test)[:, -1]
-    metrics = _get_metrics(y_test,y_pred)
+    metrics = _get_metrics(y_test, y_pred)
     metrics["auc"] = roc_auc_score(y_test, y_pred_proba)
 
     return qnn, classification_report(y_test, y_pred), metrics
 
 
-def qsvc(dataset: Dataset, test_size:float = 0.3):
+def qsvc(dataset: Dataset, test_size: float = 0.3):
     """
     Dataset class should already provide a dataset with dimensions
     that can fit into the circuit.
@@ -130,7 +125,7 @@ def qsvc(dataset: Dataset, test_size:float = 0.3):
     # Testing
     y_pred = qsvc.predict(x_test)
     y_pred_proba = qsvc.predict_proba(x_test)[:, -1]
-    metrics = _get_metrics(y_test,y_pred)
+    metrics = _get_metrics(y_test, y_pred)
     metrics["auc"] = roc_auc_score(y_test, y_pred_proba)
 
     return qsvc, classification_report(y_test, y_pred), metrics
