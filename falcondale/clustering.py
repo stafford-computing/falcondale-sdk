@@ -8,14 +8,16 @@ from apqc.pqc import PQC
 from apqc.density_estimation import DensityEstimator
 
 
-def prob_q_clustering(input_ds:Dataset, batch:int=100, forced_sigma:float = None):
+def prob_q_clustering(input_ds: Dataset, batch: int = 100, forced_sigma: float = None):
     """
     Accelerated Probabilistic Quantum Clustering
 
     Parameters:
     input_ds (Dataset): Entry dataset
     """
-    pqc = PQC(data_gen=input_ds.get_features(), float_type=32, batch=batch, force_cpu=True)
+    pqc = PQC(
+        data_gen=input_ds.get_features(), float_type=32, batch=batch, force_cpu=True
+    )
 
     if forced_sigma:
         pqc.set_sigmas(sigma_value=forced_sigma)
@@ -34,7 +36,10 @@ def prob_q_clustering(input_ds:Dataset, batch:int=100, forced_sigma:float = None
     pqc.cluster_allocation_by_sgd()
     pqc.cluster_allocation_by_probability()
 
-    best_solution_key = sorted([(k, v["loglikelihood"]) for k, v in pqc.basic_results.items()], key=lambda x: x[1])[0][0]
+    best_solution_key = sorted(
+        [(k, v["loglikelihood"]) for k, v in pqc.basic_results.items()],
+        key=lambda x: x[1],
+    )[0][0]
     best_proba_labels = pqc.basic_results[best_solution_key]["proba_labels"]
     label_probability = pqc.basic_results[best_solution_key]["proba_winner"]
 

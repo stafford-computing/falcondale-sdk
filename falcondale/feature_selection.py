@@ -20,10 +20,14 @@ from qiskit.primitives import Sampler
 
 from .data import Dataset
 from .solvers import dwave_solver, neal_solver
-from .helpers.mutual_information import \
-    conditional_mutual_information, mutual_information, prob
+from .helpers.mutual_information import (
+    conditional_mutual_information,
+    mutual_information,
+    prob,
+)
 
-def _compose_bqm(input_ds:Dataset, max_cols:int = None) -> dimod.BinaryQuadraticModel:
+
+def _compose_bqm(input_ds: Dataset, max_cols: int = None) -> dimod.BinaryQuadraticModel:
     """
     Builds the QUBO required for QFS.
 
@@ -43,16 +47,19 @@ def _compose_bqm(input_ds:Dataset, max_cols:int = None) -> dimod.BinaryQuadratic
     # Importance
     for i, column in enumerate(col_list):
         minf = mutual_information(
-            prob(input_ds.select([input_ds.target, column]).values), 1)
+            prob(input_ds.select([input_ds.target, column]).values), 1
+        )
         bqm.add_variable(column, -minf)
         pauli_list.append(("Z", [i], -minf))
 
     # Redundancy
     for field0, field1 in itertools.combinations(col_list, 2):
         cmi_01 = conditional_mutual_information(
-            prob(input_ds.select([input_ds.target, field0, field1]).values), 1, 2)
+            prob(input_ds.select([input_ds.target, field0, field1]).values), 1, 2
+        )
         cmi_10 = conditional_mutual_information(
-            prob(input_ds.select([input_ds.target, field1, field0]).values), 1, 2)
+            prob(input_ds.select([input_ds.target, field1, field0]).values), 1, 2
+        )
         bqm.add_interaction(field0, field1, -cmi_01)
         bqm.add_interaction(field1, field0, -cmi_10)
 
@@ -63,16 +70,18 @@ def _compose_bqm(input_ds:Dataset, max_cols:int = None) -> dimod.BinaryQuadratic
 
     # Penalty
     if max_cols & max_cols < len(col_list):
-        bqm.update(dimod.generators.combinations(bqm.variables, max_cols, strength=10*max_cols))
+        bqm.update(
+            dimod.generators.combinations(
+                bqm.variables, max_cols, strength=10 * max_cols
+            )
+        )
 
-    bqm.normalize()     # scale the BQM to (-1, 1) biases
+    bqm.normalize()  # scale the BQM to (-1, 1) biases
 
-    op = SparsePauliOp.from_sparse_list(
-        pauli_list,
-        num_qubits=len(col_list)
-    )
+    op = SparsePauliOp.from_sparse_list(pauli_list, num_qubits=len(col_list))
 
     return bqm, op
+
 
 def _sample_most_likely(state_vector) -> np.array:
     """Compute the most likely binary string from state vector.
@@ -88,13 +97,14 @@ def _sample_most_likely(state_vector) -> np.array:
         values = state_vector
     n = int(np.log2(len(values)))
     k = np.argmax(np.abs(values))
-    x = [int(digit) for digit in np.binary_repr(n,k)]
+    x = [int(digit) for digit in np.binary_repr(n, k)]
     x.reverse()
     return np.asarray(x)
 
-def qfs_sim_qaoa(input_ds:Dataset, max_cols:int = None) -> list[str]:
-    """ Compose the problem to run on a locally simulated QAOA setup
-    
+
+def qfs_sim_qaoa(input_ds: Dataset, max_cols: int = None) -> list[str]:
+    """Compose the problem to run on a locally simulated QAOA setup
+
     Args:
         input_ds (dataset): Falcondale Dataset data type
         max_cols (int): Maximum number of features to be selected
@@ -119,7 +129,8 @@ def qfs_sim_qaoa(input_ds:Dataset, max_cols:int = None) -> list[str]:
 
     return col_list
 
-def qfs(token:str, input_ds:Dataset, max_cols:int = None) -> list[str]:
+
+def qfs(token: str, input_ds: Dataset, max_cols: int = None) -> list[str]:
     """
     Implements a QUBO problem so that the set of features to be used can be implemented on
     a quantum annealer.
@@ -150,7 +161,8 @@ def qfs(token:str, input_ds:Dataset, max_cols:int = None) -> list[str]:
 
     return col_list
 
-def qfs_neal(input_ds:Dataset, max_cols:int = None) -> list[str]:
+
+def qfs_neal(input_ds: Dataset, max_cols: int = None) -> list[str]:
     """
     Implements a QUBO problem so that the set of features to be used can be implemented on
     a quantum simulated annealer.
@@ -181,7 +193,7 @@ def qfs_neal(input_ds:Dataset, max_cols:int = None) -> list[str]:
     return col_list
 
 
-def qfs_sb(input_ds:Dataset, max_cols:int = None) -> list[str]:
+def qfs_sb(input_ds: Dataset, max_cols: int = None) -> list[str]:
     """
     Implements a QUBO problem so that the set of features to be used can
     be solved usign simulated bifurcation algorithm
@@ -200,13 +212,13 @@ def qfs_sb(input_ds:Dataset, max_cols:int = None) -> list[str]:
     bqm, _ = _compose_bqm(input_ds, max_cols)
     h, J, _ = bqm.to_ising()
 
-    h_list = [0]*bqm.num_variables
-    J_mat = [[0]*bqm.num_variables]*bqm.num_variables
+    h_list = [0] * bqm.num_variables
+    J_mat = [[0] * bqm.num_variables] * bqm.num_variables
     for i, col_i in enumerate(input_ds._columns):
         h_list[i] = h[col_i]
         for j, col_j in enumerate(input_ds._columns):
-            if (col_i,col_j) in J:
-                J_mat[i][j] = J[(col_i,col_j)]
+            if (col_i, col_j) in J:
+                J_mat[i][j] = J[(col_i, col_j)]
 
     # SB
     h_torch = torch.tensor(h_list, dtype=torch.float32)
@@ -216,11 +228,12 @@ def qfs_sb(input_ds:Dataset, max_cols:int = None) -> list[str]:
     solution, _ = sb.minimize(
         J_torch,
         h_torch,
-        input_type='spin',
+        input_type="spin",
         best_only=True,
         heated=False,
         ballistic=True,
-        verbose=False)
+        verbose=False,
+    )
 
     col_list = []
     for mask, column in zip(solution, input_ds._columns):

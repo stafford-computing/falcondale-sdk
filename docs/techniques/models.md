@@ -65,19 +65,19 @@ By default current implementation performs [Amplitude Embedding](https://pennyla
 In order to provide as much information as possible for the outcome of the project, Falcondale provides a variety of metrics out of the box.
 
 - **Classification report**
-    
+
     This is a complete report on the outcome of the model evaluating our tests samples after model has been trained. It shows the precision (ratio of true positives over all flagged positives), recall (true positive ratio over actual positive samples) and f1-score as well as the amount of samples that supported those metrics per label/class.
-    
+
     Accuracy might be a good metric in those cases where dataset is balanced, but if not high discrepancies will be seen between accuracy and balanced accuracy as the model is biased towards the majority class.
-    
+
     This report aims to provide a set of metrics needed in order to evaluate the model on its full extent. When a model is trained by default the ```print_report()``` method shows the whole classification report but additional metrics can be found.
-    
+
 - **AUC**
-    
+
     Additionally AUC, short for **a**rea **u**nder the ROC (receiver operating characteristic) **c**urve, is also provided. AUC is an average of true positive rates over all possible values of the false positive rate and it provides a sensible way to evaluate the bias of the model as well as its potential for error when put into operation.
 
 - **Additional metrics**
-    
+
     Taken from the confusion matrix generated after model being trained and tested against the test dataset, precision, recall, balanced accuracy, accuracy and f1 score among other metrics can be directly consulted by requesting the available metrics to the model (using the ```list_metrics()``` function).
 
 ```python
