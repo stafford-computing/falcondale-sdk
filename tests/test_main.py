@@ -5,6 +5,10 @@ from falcondale import Project
 
 
 class TestSum(unittest.TestCase):
+    """
+    Basic test suite
+    """
+
     def setUp(self):
         # import some data to play with
         X, y = datasets.load_breast_cancer(return_X_y=True, as_frame=True)
@@ -15,6 +19,10 @@ class TestSum(unittest.TestCase):
         self.project = Project(dataset, target="target")
 
     def test_feature_selection(self):
+        """
+        Testing if the feature selection works
+        and provides expected list.
+        """
         self.project.preprocess()
         result = self.project.feature_selection(max_cols=10)
 
