@@ -33,9 +33,7 @@ class Model:
     as well as the metrics obtained against testing data split while training.
     """
 
-    def __init__(
-        self, dataset: Dataset, m_type: str, model, classification_report, scores: dict
-    ):
+    def __init__(self, dataset: Dataset, m_type: str, model, classification_report, scores: dict):
         """
         Inits the model structure with provided information.
 
@@ -214,9 +212,7 @@ class Project:
         """
         return self._data.get_features()
 
-    def feature_selection(
-        self, max_cols: int, method: str = "sa", **kwargs
-    ) -> list[str]:
+    def feature_selection(self, max_cols: int, method: str = "sa", **kwargs) -> list[str]:
         """
         Performs the quantum feature selection to reduce the columns to be used selecting
         the obtained features as the ones to be used in following steps.
@@ -251,9 +247,7 @@ class Project:
         method = method.lower()
 
         if max_cols > len(self._data._columns):
-            print(
-                "Your previous selection is in force, preprocess the dataset to start over."
-            )
+            print("Your previous selection is in force, preprocess the dataset to start over.")
             return None
 
         if method == "qaoa":
@@ -293,9 +287,7 @@ class Project:
         print("Welcome to Falcondale SDK! you will be able to:")
         print(" - Perform Quantum Feature Selection using Quantum Annealing or QAOA")
         print(" - Train quantum-enhanced models such as QSVC or QNN")
-        print(
-            " - Perform Quantum Clustering by pure quantum and quantum-inspired techniques"
-        )
+        print(" - Perform Quantum Clustering by pure quantum and quantum-inspired techniques")
 
     def evaluate(self, model: str, test_size: float = 0.3, **kwargs) -> Model:
         """
@@ -326,8 +318,18 @@ class Project:
         """
         model = model.lower()
 
+        verbose = False
+        if "verbose" in kwargs:
+            verbose = kwargs["verbose"]
+
+        backend = "qiskit"
+        if "backend" in kwargs:
+            backend = kwargs["backend"]
+
         if model == "qsvc":
-            qsvc_model, report, metrics = qsvc(dataset=self._data, test_size=test_size)
+            qsvc_model, report, metrics = qsvc(
+                dataset=self._data, test_size=test_size, backend=backend, verbose=verbose
+            )
             fmodel = Model(self._data, model, qsvc_model, report, metrics)
             return fmodel
 
@@ -336,12 +338,10 @@ class Project:
                 layers = kwargs["layers"]
 
                 qnn_model, report, metrics = qnn(
-                    dataset=self._data, test_size=test_size, layers=layers
+                    dataset=self._data, test_size=test_size, layers=layers, verbose=verbose
                 )
             else:
-                qnn_model, report, metrics = qnn(
-                    dataset=self._data, test_size=test_size
-                )
+                qnn_model, report, metrics = qnn(dataset=self._data, test_size=test_size, verbose=verbose)
 
             fmodel = Model(self._data, model, qnn_model, report, metrics)
             return fmodel

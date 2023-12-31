@@ -1,6 +1,5 @@
 [project]
 name = "falcondale"
-version = "0.2.2"
 description = "Falcondale SDK"
 authors = [
     {name = "Stafford Computing LLC", email = "info@staffordcomputing.com"},
@@ -11,22 +10,23 @@ dependencies = [
     "scikit-learn>=1.3.0",
     "ipywidgets>=8.1.1",
     "torch>=2.0.1",
-    "pennylane>=0.32.0",
+    "pennylane>=0.33.0",
     "qiskit>=0.45.0",
     "qiskit-machine-learning>=0.7.0",
-    "qiskit-aer>=0.12.2",
+    "qiskit-aer>=0.13.0",
     "dimod>=0.12.12",
     "dwave-neal>=0.6.0",
     "dwave-cloud-client>=0.10.6",
     "requests[socks]>=2.31.0",
-    "qiskit-optimization>=0.5.0",
+    "qiskit-optimization>=0.6.0",
     "qiskit-algorithms>=0.2.1",
     "apqc>=0.1.3",
     "simulated-bifurcation>=1.2.0",
 ]
-requires-python = ">=3.9,<3.12"
+requires-python = ">=3.10,<3.12"
 readme = "README.md"
 license = {text = "MIT"}
+dynamic = ["version"]
 
 [project.urls]
 "Homepage" = "https://github.com/stafford-computing/falcondale-sdk"
@@ -35,6 +35,10 @@ license = {text = "MIT"}
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
+
+[tool.pdm.version]
+source = "file"
+path = "falcondale/__init__.py"
 
 [tool.pdm.dev-dependencies]
 notebook = [
