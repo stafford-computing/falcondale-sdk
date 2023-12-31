@@ -1,6 +1,6 @@
 One of the key use cases for Quantum Computing over Classical resources is their capacity to explore the vast set of options that combinatorial optimization problems may pose. Feature Selection deals with finding a subset of the features in the original dataset so that by using a subset a more accurate model with better generalization capacities is obtained. Basically removes the noise or redundant information from the original dataset by removing specific features. It also benefits cases where certain features are hard to obtain because they might involve expensive or lengthy computation (examples can be from clinical analysis datasets when it comes to patient data, large historic datasets where one time features need to be found, etc.).
 
-There are different techniques we may to obtain this subset but most of them require training models to check if the selection has been improved or not. This is the case for [Recursive Feature Elimination](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFE.html). Others do it by simply removing data with [low variance](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.VarianceThreshold.html#sklearn.feature_selection.VarianceThreshold). 
+There are different techniques we may to obtain this subset but most of them require training models to check if the selection has been improved or not. This is the case for [Recursive Feature Elimination](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.RFE.html). Others do it by simply removing data with [low variance](https://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.VarianceThreshold.html#sklearn.feature_selection.VarianceThreshold).
 
 Quantum Computers do this differently. They focus on the informative capacity of the dataset. If a feature is good detecting a given label this has higher chances to remain; if two features show similarities in their behavior and provide similar prediction capacity over the target label then we may be able to suppress one of those. Therefore, we can encode our problem into a QUBO form and use a quantum computer to solve this combinatorial optimization problem. Quantum annealers among others are known to be good at this tasks.
 
@@ -36,7 +36,7 @@ Hardware interaction is more complicated in this scenario and requires adapting 
 
 Quantum Hardware providers (such as D-Wave, Qiskit or even AWS) offer the option to connect to their service by means of an authentication TOKEN. Falcondale can redirect this connection so that actual hardware is used instead of locally simulated execution on one owns device..
 
-In order to inform Falcondale of the connection to be used, one can introduce the TOKEN provided by the [Leap platform](https://cloud.dwavesys.com/leap/). 
+In order to inform Falcondale of the connection to be used, one can introduce the TOKEN provided by the [Leap platform](https://cloud.dwavesys.com/leap/).
 
 <figure markdown>
   ![dwavetoken](../assets/dwavetoken.png)

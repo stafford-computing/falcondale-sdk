@@ -1,6 +1,6 @@
 # Contribute
 
-As you probably know, there are many ways in which you could contribute to Falcondale SDK. Feel free to reach out and 
+As you probably know, there are many ways in which you could contribute to Falcondale SDK. Feel free to reach out and
 learn about the product roadmap and share your experience using the platform with us.
 
 ## Roadmap
