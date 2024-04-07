@@ -1,6 +1,7 @@
 """
 Auxiliary functions
 """
+
 import numpy as np
 from pandas import DataFrame
 
@@ -49,6 +50,6 @@ def conditional_mutual_information(p, j, *conditional_indices):
 
     marginal_conditional_indices = [i - 1 if i > j else i for i in conditional_indices]
 
-    return conditional_shannon_entropy(
-        np.sum(p, axis=j), *marginal_conditional_indices
-    ) - conditional_shannon_entropy(p, j, *conditional_indices)
+    return conditional_shannon_entropy(np.sum(p, axis=j), *marginal_conditional_indices) - conditional_shannon_entropy(
+        p, j, *conditional_indices
+    )

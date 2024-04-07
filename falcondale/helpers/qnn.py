@@ -1,6 +1,7 @@
 """
 Module implementing generic QNN setups
 """
+
 import logging
 
 import torch

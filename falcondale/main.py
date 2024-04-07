@@ -9,6 +9,7 @@ Classes:
 
         $ myproject = Project(dataset, target="target")
 """
+
 import pickle
 import warnings
 import pandas as pd
@@ -348,7 +349,7 @@ class Project:
 
         return NotImplemented
 
-    def cluster(self, ctype: str, **kwargs) -> (list[int], list[float]):
+    def cluster(self, ctype: str, **kwargs) -> tuple[list[int], list[float]]:
         """
         Given a type of clustering it is implemented using the
         information of the inner Dataset. Essentially takes the features

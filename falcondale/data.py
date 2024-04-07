@@ -2,6 +2,7 @@
 This module implements the data structure that will be used
 along any steps of a Falcondale project.
 """
+
 import json
 from pandas import DataFrame, concat
 from ydata_profiling import ProfileReport
@@ -52,20 +53,11 @@ class Dataset:
         print(f"Number of samples on the dataset: {self._df_profile['table']['n']}")
         print(f"Number of columns on the dataset: {self._df_profile['table']['n_var']}")
         if self.target:
-            print(
-                f"{self.target} has been selected as target variable for supervised learning tasks."
-            )
-        print(
-            f"Ratio of samples with missing values: {self._df_profile['table']['p_cells_missing']}"
-        )
+            print(f"{self.target} has been selected as target variable for supervised learning tasks.")
+        print(f"Ratio of samples with missing values: {self._df_profile['table']['p_cells_missing']}")
 
-        if (
-            self._df_profile["table"]["n_var"]
-            == self._df_profile["table"]["types"]["Numeric"]
-        ):
-            print(
-                "All data is numeric therefore little preprocessing might need to be done."
-            )
+        if self._df_profile["table"]["n_var"] == self._df_profile["table"]["types"]["Numeric"]:
+            print("All data is numeric therefore little preprocessing might need to be done.")
         else:
             print(
                 "Seems like some features are not Numeric, make sure dataset counts with numeric values for categorical values as well."
@@ -170,9 +162,7 @@ class Dataset:
         """
         if self.target in col_list:
             col_list.remove(self.target)
-            return concat(
-                [self._features[col_list], self._rawdataset[self.target]], axis=1
-            )
+            return concat([self._features[col_list], self._rawdataset[self.target]], axis=1)
 
         return self._features[col_list]
 
