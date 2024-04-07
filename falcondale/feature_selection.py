@@ -2,6 +2,7 @@
 This module focuses on feature selection methods to diminish the dimensionality of a target dataset.
 
 """
+
 import dimod
 import numpy as np
 import itertools
@@ -46,20 +47,14 @@ def _compose_bqm(input_ds: Dataset, max_cols: int = None) -> dimod.BinaryQuadrat
 
     # Importance
     for i, column in enumerate(col_list):
-        minf = mutual_information(
-            prob(input_ds.select([input_ds.target, column]).values), 1
-        )
+        minf = mutual_information(prob(input_ds.select([input_ds.target, column]).values), 1)
         bqm.add_variable(column, -minf)
         pauli_list.append(("Z", [i], -minf))
 
     # Redundancy
     for field0, field1 in itertools.combinations(col_list, 2):
-        cmi_01 = conditional_mutual_information(
-            prob(input_ds.select([input_ds.target, field0, field1]).values), 1, 2
-        )
-        cmi_10 = conditional_mutual_information(
-            prob(input_ds.select([input_ds.target, field1, field0]).values), 1, 2
-        )
+        cmi_01 = conditional_mutual_information(prob(input_ds.select([input_ds.target, field0, field1]).values), 1, 2)
+        cmi_10 = conditional_mutual_information(prob(input_ds.select([input_ds.target, field1, field0]).values), 1, 2)
         bqm.add_interaction(field0, field1, -cmi_01)
         bqm.add_interaction(field1, field0, -cmi_10)
 
@@ -70,11 +65,7 @@ def _compose_bqm(input_ds: Dataset, max_cols: int = None) -> dimod.BinaryQuadrat
 
     # Penalty
     if max_cols & max_cols < len(col_list):
-        bqm.update(
-            dimod.generators.combinations(
-                bqm.variables, max_cols, strength=10 * max_cols
-            )
-        )
+        bqm.update(dimod.generators.combinations(bqm.variables, max_cols, strength=10 * max_cols))
 
     bqm.normalize()  # scale the BQM to (-1, 1) biases
 

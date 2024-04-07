@@ -1,6 +1,7 @@
 """
 Aiming for clustering dataset samples using classical, quantum-inspired and quantum techniques.
 """
+
 from .data import Dataset
 
 import numpy as np
@@ -15,9 +16,7 @@ def prob_q_clustering(input_ds: Dataset, batch: int = 100, forced_sigma: float =
     Parameters:
     input_ds (Dataset): Entry dataset
     """
-    pqc = PQC(
-        data_gen=input_ds.get_features(), float_type=32, batch=batch, force_cpu=True
-    )
+    pqc = PQC(data_gen=input_ds.get_features(), float_type=32, batch=batch, force_cpu=True)
 
     if forced_sigma:
         pqc.set_sigmas(sigma_value=forced_sigma)

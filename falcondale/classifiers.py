@@ -1,6 +1,7 @@
 """
 Module implementing the classification methods
 """
+
 from .helpers.qnn import QNN
 from .helpers.qsvc import QSVC
 from .data import Dataset
@@ -10,7 +11,7 @@ from sklearn.metrics import classification_report, roc_auc_score, confusion_matr
 
 from qiskit.primitives import Sampler
 from qiskit.circuit.library import ZZFeatureMap
-from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit_algorithms.state_fidelities import ComputeUncompute
 
 from qiskit_machine_learning.kernels import FidelityQuantumKernel
 from qiskit_machine_learning.algorithms import QSVC as qiskitQSVC
@@ -137,6 +138,7 @@ def qsvc(dataset: Dataset, test_size: float = 0.3, backend: str = "qiskit", verb
         x_train, x_test, y_train, y_test = dataset.train_test_split(test_size=test_size)
 
         qsvc = QSVC(inputs=cols, verbose=verbose)
+
         # Training
         qsvc.fit(x_train, y_train)
 

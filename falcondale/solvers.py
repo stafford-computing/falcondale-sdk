@@ -1,6 +1,7 @@
 """
 Takes care of the interface with the solvers
 """
+
 import time
 import neal
 from dwave.cloud import Client
